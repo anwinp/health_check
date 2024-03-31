@@ -1,0 +1,67 @@
+import openai
+import os
+
+# Set up OpenAI API key
+openai.api_key = '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'
+
+# Function to read log file and chunk it into parts
+def read_and_chunk_log_file(log_file_path, chunk_size=1000):
+    with open(log_file_path, 'r') as file:
+        full_log = file.read()
+        chunks = [full_log[i:i+chunk_size] for i in range(0, len(full_log), chunk_size)]
+        return chunks, full_log
+
+# Function to send user question and log content to OpenAI API for response
+def send_question_to_openai(question, full_log):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {
+                "role": "system",
+                "content": "User question:"
+            },
+            {
+                "role": "user",
+                "content": question
+            },
+            {
+                "role": "user",
+                "content": "Log content:" + full_log
+            }
+        ],
+        temperature=0.7,
+        max_tokens=1500
+    )
+    return response.choices[0].message['content']
+
+# Function to prompt user for questions
+def prompt_user_for_questions(chunks, full_log):
+    for chunk in chunks:
+        print("Processing chunk...")
+        # Process each chunk if needed
+    print("Log processing complete.")
+
+    while True:
+        question = input("Ask a question (type 'exit' to quit): ")
+        if question.lower() == 'exit':
+            break
+        else:
+            # Send the question and log content to OpenAI
+            response = send_question_to_openai(question, full_log)
+            print("OpenAI response:", response)
+
+# Main function
+def main():
+    log_file_path = '/Users/ceezze/workingdir/dgx-log/dgx-log-750.txt'
+    if not os.path.isfile(log_file_path):
+        print("Log file not found.")
+        return
+
+    # Read and chunk the log file
+    chunks, full_log = read_and_chunk_log_file(log_file_path)
+
+    # Prompt user for questions and display OpenAI responses
+    prompt_user_for_questions(chunks, full_log)
+
+if __name__ == "__main__":
+    main()
