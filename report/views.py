@@ -20,6 +20,7 @@ from django.contrib import messages
 import logging
 from django.http import JsonResponse
 log = logging.getLogger(__name__)
+from .libs import process_data
 
 def report_catalog(request):
     return render(request, 'report/report_catalog.html')
@@ -91,14 +92,14 @@ def file_upload_view(request):
         form = FileUploadForm(request.POST, files)
         if form.is_valid():
             try:
-                form.save()
+                file_upload = form.save()
                 messages.success(request, 'File uploaded successfully.')
+                # Process the uploaded file
+                process_data(file_upload.file_path.path)
+                # Redirect to the files_list URL
+                return HttpResponseRedirect(reverse('files_list'))
             except IntegrityError:
                 messages.error(request, 'File with this checksum already exists.')
-            # Process the uploaded file
-            # process_data(uploaded_file.file.path)
-            # Redirect to the files_list URL
-            return HttpResponseRedirect(reverse('files_list'))
         else:
             print(form.errors)
     else:
