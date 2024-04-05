@@ -1,0 +1,97 @@
+{% extends 'home.html' %}
+
+{% block content %}
+    <!-- Your content goes here -->
+    <div class="box">
+        <div class="box-header">
+            <h3 class="box-title" style="display: inline-block;">File List</h3>
+            <div class="pull-right" style="display: inline-block; float: right;">
+                <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#uploadModal">Upload File</button>
+            </div>
+        </div>
+        <div class="box-body">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>File Path</th>
+                        <th>Checksum</th>
+                        <th>File Size</th>
+                        <th>File Uploaded Date</th>
+                        <th>Actions</th> <!-- Added column for actions -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                        <tr id="file-{{ file.file_id }}">
+                            <td>{{ file.file_name }}</td>
+                            <td>{{ file.file_path }}</td>
+                            <td>{{ file.checksum }}</td>
+                            <td>{{ file.file_size }}</td>
+                            <td>{{ file.file_date }}</td>
+                            <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteFile('{{ file.file_id }}')">Delete</button> <!-- Added delete button -->
+                            </td>
+                        </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">No data found</td>
+                            </tr>
+                        {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadModalLabel">Upload File</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Your file upload form goes here -->
+                    <form action="{% url 'file_upload' %}" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="file" name="file" required>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var deleteUrl = "{% url 'delete_file' '123' %}";
+
+        function deleteFile(fileId) {
+            var url = deleteUrl.replace('123', fileId);
+    
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}', 
+                },
+            })
+            .then(response => {
+                if (response.ok) {
+                    // File deleted successfully, remove the row from the table
+                    var row = document.getElementById('file-' + fileId);
+                    if (row) {
+                        row.remove();
+                    }
+                } else {
+                    // Handle error response
+                }
+            })
+            .catch(error => {
+                // Handle error
+            });
+        }
+    </script>
+{% endblock %}

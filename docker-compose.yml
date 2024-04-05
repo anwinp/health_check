@@ -21,6 +21,8 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
+      - uploaded_files:/data
+
     ports:
       - "8000:8000"
     depends_on:
@@ -39,6 +41,7 @@ services:
       - rabbitmq
     env_file:
       - .env
+      - uploaded_files:/data
 
   celerybeat:
     build: .
@@ -53,3 +56,4 @@ services:
 
 volumes:
   postgres_data:
+  uploaded_files:

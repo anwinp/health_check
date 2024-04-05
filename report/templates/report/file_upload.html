@@ -1,0 +1,11 @@
+{% load i18n static %}  <!-- If you're already loading other libraries -->
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.file_path }}
+    <input type="submit" value="Upload">
+</form>
+{% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+{% endfor %}
