@@ -4,8 +4,6 @@ from collections import defaultdict
 import datetime
 
 class CommandParserBase:
-    def __init__(self):
-        self.pattern = re.compile(r"^(.*?):\s*(.*)$", re.MULTILINE)
         
     def parse(self, blocks):
         raise NotImplementedError("Each parser must implement the parse method.")
@@ -16,14 +14,32 @@ class CommandParserBase:
             merged_data.extend(parsed_data[key])
         return merged_data
     
-    # Generic function for parsing key-value pairs with a colon
     def parse_key_value_pairs(self, text, keywords=None):
-        matches = self.pattern.findall(text)
-        if keywords:
-            filtered_matches = [(key.strip(), value.strip()) for key, value in matches if key.strip() in keywords]
-            return {key: value for key, value in filtered_matches}
-        else:
-            return {key.strip(): value.strip() for key, value in matches}
+        # Split the input text into lines
+        lines = text.strip().split('\n')
+        parsed_data = {}
+
+        for line in lines:
+            # Split each line at the first colon found
+            parts = line.split(':', 1)
+            
+            # If the line contains a colon and has parts on both sides of it
+            if len(parts) == 2:
+                key, value = parts
+                key = key.strip()
+                value = value.strip()
+                
+                # Only add the key-value pair if there's a non-empty value
+                # and if no keywords specified or the key matches one of the keywords
+                if value and (not keywords or any(kw.lower() in key.lower() for kw in keywords)):
+                    parsed_data[key] = value
+
+        # Check if parsed_data is empty and print a message if so
+        if not parsed_data:
+            print("No key-value pairs exist in the input.")
+            return None
+
+        return parsed_data
     
     def parse_space_separated_key_values(self, text, keywords=None):
         """
@@ -34,18 +50,22 @@ class CommandParserBase:
             keywords (list, optional): A list of keywords to filter the keys. Defaults to None.
             
         Returns:
-            dict: The parsed key-value pairs.
+            dict or None: The parsed key-value pairs or None if no pairs are found.
         """
         lines = text.strip().split('\n')
-        split_index = max([line.find('  ') for line in lines if line.find('  ') != -1]) + 1
-
         parsed_data = {}
+
         for line in lines:
-            if line.find('  ') != -1:  # Ensure there's a gap indicating a key-value pair
-                key = line[:split_index].strip()
-                value = line[split_index:].strip()
+            if '  ' in line:  # Check if there is a double space, indicating a key-value pair
+                key, value = line.split('  ', 1)
+                key = key.strip()
+                value = value.strip()
                 if key and (not keywords or any(keyword.lower() in key.lower() for keyword in keywords)):
                     parsed_data[key] = value
+
+        if not parsed_data:  # No key-value pairs found
+            print("No space-separated key-value pairs exist in the input.")
+            return None
 
         return parsed_data
     
@@ -96,9 +116,6 @@ class ShowlineParser(CommandParserBase):
 
 class SlotsParser(CommandParserBase):
         
-    def __init__(self):
-        super().__init__()
-        
     def parse(self, blocks, merge=True):
         """_summary_
 
@@ -136,7 +153,6 @@ class SlotsParser(CommandParserBase):
       
 class SFPDataParser(CommandParserBase):
     def __init__(self):
-        super().__init__()
         self.keyword_mapping = {
             "vendorName": "Vendor Name",
             "vendorPartNumber": "Vendor Part Number",
@@ -174,6 +190,28 @@ class SFPDataParser(CommandParserBase):
             
             parsed_data[command_key].append(mapped_data)
 
+        if merge:
+            return self.merge_parsed_data(parsed_data)
+        else:
+            return parsed_data
+
+class ShowFatalDataParser(CommandParserBase):
+    def __init__(self):
+        self.keywords = [
+            "Timestamp",
+            "SW version",
+            "Task name",
+            "Errno",
+            "Fatal code",
+        ]
+        
+    def parse(self, blocks, merge=True):
+        parsed_data = defaultdict(list)
+        for command_key, command_data in blocks.items():
+            result_dict = self.parse_key_value_pairs(command_data['output'], keywords=self.keywords)
+            if result_dict is None:
+                continue
+            parsed_data[command_key].append(result_dict)
         if merge:
             return self.merge_parsed_data(parsed_data)
         else:
