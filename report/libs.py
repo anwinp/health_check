@@ -10,7 +10,7 @@ import datetime
 from .excel_generator import ExcelGenerator
 from typing import List
 from .parser_factory import ParserFactory
-from .parsers import ShowlineParser, SlotsParser
+from .parsers import ShowlineParser, SlotsParser, SFPDataParser
 from .log_reader import LogParser
 from .report_generator import ReportGenerator
 from .excel_generator import ExcelGenerator
@@ -21,10 +21,11 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
     parser_factory = ParserFactory()
     parser_factory.register_parser('showline', ShowlineParser)
     parser_factory.register_parser('slots', SlotsParser)
+    parser_factory.register_parser('sfp show', SFPDataParser)
 
     # Step 1: Read and prepare data
     log_parser = LogParser(log_filepath)
-    log_parser.parse(['showline', 'slots'])  # Add more keywords as needed
+    log_parser.parse(['showline', 'slots', 'sfp show'])  # Add more keywords as needed
     commands_data = log_parser.get_commands()
 
     # Step 2: Dynamically parse command outputs using registered parsers
@@ -35,6 +36,8 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
             parsed_data = parser.parse(blocks)
             output[command] = parsed_data
         except ValueError as e:
+            # import traceback
+            # traceback.print_exc()
             print(e)
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
