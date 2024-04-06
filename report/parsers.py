@@ -3,18 +3,8 @@ import re
 from collections import defaultdict
 import datetime
 
-class CommandParserBase:
-        
-    def parse(self, blocks):
-        raise NotImplementedError("Each parser must implement the parse method.")
-    
-    def merge_parsed_data(self, parsed_data):
-        merged_data = []
-        for key in parsed_data:
-            merged_data.extend(parsed_data[key])
-        return merged_data
-    
-    def parse_key_value_pairs(self, text, keywords=None):
+class KeyValueParser:
+    def parse(self, text, keywords=None):
         # Split the input text into lines
         lines = text.strip().split('\n')
         parsed_data = {}
@@ -41,7 +31,8 @@ class CommandParserBase:
 
         return parsed_data
     
-    def parse_space_separated_key_values(self, text, keywords=None):
+class SpaceSeparatedKeyValueParser:
+    def parse(self, text, keywords=None):
         """
         Parses space-separated key-value pairs, filtering by a list of keywords.
         
@@ -68,8 +59,41 @@ class CommandParserBase:
             return None
 
         return parsed_data
+
+class DataMerger:
+    def merge(self, parsed_data):
+        merged_data = []
+        for key in parsed_data:
+            merged_data.extend(parsed_data[key])
+        return merged_data
+
+
+class ParserMeta(type):
+    def __init__(cls, name, bases, attrs):
+        if not hasattr(cls, 'registry'):
+            cls.registry = {}
+        elif hasattr(cls, 'command_keyword'):
+            cls.registry[cls.command_keyword] = cls
+        super().__init__(name, bases, attrs)
+        
+class CommandParserBase(metaclass=ParserMeta):
+    def __init__(self):
+        self.key_value_parser = KeyValueParser()
+        self.space_separated_key_value_parser = SpaceSeparatedKeyValueParser()
+        self.data_merger = DataMerger()
+
+    def parse(self, blocks):
+        raise NotImplementedError("Each parser must implement the parse method.")
     
+    def return_parsed_data(self, parsed_data, merge):
+        if merge:
+            return self.data_merger.merge(parsed_data)
+        else:
+            return parsed_data
+
 class ShowlineParser(CommandParserBase):
+    command_keyword = 'showline'
+    
     def parse(self, blocks, merge=True):
         """
         Parse log data from 'showline' commands into a dictionary format.
@@ -108,13 +132,14 @@ class ShowlineParser(CommandParserBase):
                                 'Status': status.strip()
                             })
 
-        if merge:
-            return self.merge_parsed_data(parsed_data)
-        else:
-          return parsed_data
+        return self.return_parsed_data(parsed_data, merge)
 
 
 class SlotsParser(CommandParserBase):
+    command_keyword = 'slots'
+    
+    def __init__(self):
+        super().__init__()
         
     def parse(self, blocks, merge=True):
         """_summary_
@@ -131,7 +156,7 @@ class SlotsParser(CommandParserBase):
         parsed_data = defaultdict(list)
 
         for command_key, command_data in blocks.items():
-            result_dict = self.parse_key_value_pairs(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State'])
+            result_dict = self.key_value_parser.parse(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State'])
             filtered_dict = {
                 'Shelf': result_dict.get('Shelf'),
                 'Slot': result_dict.get('Slot'),
@@ -146,13 +171,14 @@ class SlotsParser(CommandParserBase):
             parsed_data[command_key].append(filtered_dict)
         print('parsed_data', parsed_data)   
 
-        if merge:
-            return self.merge_parsed_data(parsed_data)
-        else:
-          return parsed_data
+        return self.return_parsed_data(parsed_data, merge)
+
       
 class SFPDataParser(CommandParserBase):
+    command_keyword = 'sfp show'
+    
     def __init__(self):
+        super().__init__()
         self.keyword_mapping = {
             "vendorName": "Vendor Name",
             "vendorPartNumber": "Vendor Part Number",
@@ -183,20 +209,21 @@ class SFPDataParser(CommandParserBase):
             if interface:
                 mapped_data['Interface'] = interface
                 
-            result_dict = self.parse_space_separated_key_values(command_data['output'], keywords=self.keyword_mapping.keys())
+            result_dict = self.space_separated_key_value_parser.parse(command_data['output'], keywords=self.keyword_mapping.keys())
             result_dict["manufacturingDateCode"] = self.format_manufacturing_date(result_dict["manufacturingDateCode"])   
 
             mapped_data.update({self.keyword_mapping.get(k, k): v for k, v in result_dict.items()})
             
             parsed_data[command_key].append(mapped_data)
 
-        if merge:
-            return self.merge_parsed_data(parsed_data)
-        else:
-            return parsed_data
+        return self.return_parsed_data(parsed_data, merge)
+
 
 class ShowFatalDataParser(CommandParserBase):
+    command_keyword = 'showfataldata'
+    
     def __init__(self):
+        super().__init__()
         self.keywords = [
             "Timestamp",
             "SW version",
@@ -208,11 +235,37 @@ class ShowFatalDataParser(CommandParserBase):
     def parse(self, blocks, merge=True):
         parsed_data = defaultdict(list)
         for command_key, command_data in blocks.items():
-            result_dict = self.parse_key_value_pairs(command_data['output'], keywords=self.keywords)
+            result_dict = self.key_value_parser.parse(command_data['output'], keywords=self.keywords)
             if result_dict is None:
                 continue
             parsed_data[command_key].append(result_dict)
-        if merge:
-            return self.merge_parsed_data(parsed_data)
-        else:
-            return parsed_data
+        return self.return_parsed_data(parsed_data, merge)
+
+        
+class RomVersionParser(CommandParserBase):
+    command_keyword = 'romversion'
+    
+    def __init__(self):
+        super().__init__()
+        
+    def parse(self, blocks, merge=True):
+        parsed_data = defaultdict(list)
+        for command_key, command_data in blocks.items():
+            if self.command_keyword in command_key:
+                # Extract card identifier (number or string) from command key
+                card_identifier_match = re.search(rf'{self.command_keyword}\s+(\S+)', command_key)
+                card_identifier = card_identifier_match.group(1) if card_identifier_match else "Unknown"
+
+                # Split the command output by new lines to separate rom version and timestamp
+                lines = command_data['output'].split('\n')
+                if len(lines) >= 2:
+                    rom_version = lines[0].strip()
+                    timestamp = lines[1].strip()
+                    
+                    parsed_data[command_key].append({
+                        'Card': card_identifier,
+                        'ROM ersion': rom_version,
+                        'Timestamp': timestamp
+                    })
+        return self.return_parsed_data(parsed_data, merge)
+

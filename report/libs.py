@@ -2,7 +2,6 @@
 
 
 from .parser_factory import ParserFactory
-from .parsers import ShowlineParser, SlotsParser
 from .log_reader import LogParser
 from .report_generator import ReportGenerator
 import re
@@ -10,7 +9,7 @@ import datetime
 from .excel_generator import ExcelGenerator
 from typing import List
 from .parser_factory import ParserFactory
-from .parsers import ShowlineParser, SlotsParser, SFPDataParser, ShowFatalDataParser
+from .parsers import CommandParserBase
 from .log_reader import LogParser
 from .report_generator import ReportGenerator
 from .excel_generator import ExcelGenerator
@@ -19,13 +18,13 @@ import datetime
 def process_data(log_filepath: str, create_report: bool = False, create_excel: bool = True):
     # Initialize the parser factory and register command parsers
     parser_factory = ParserFactory()
-    parser_factory.register_parser('showline', ShowlineParser)
-    parser_factory.register_parser('slots', SlotsParser)
-    parser_factory.register_parser('sfp show', SFPDataParser)
-    parser_factory.register_parser('showfataldata', ShowFatalDataParser)
-    # Step 1: Read and prepare data
+    for name, ParserClass in CommandParserBase.registry.items():
+        parser_factory.register_parser(name, ParserClass)
+        
     log_parser = LogParser(log_filepath)
-    log_parser.parse(['showline', 'slots', 'sfp show', 'showfataldata'])  # Add more keywords as needed
+    command_keywords = list(CommandParserBase.registry.keys())
+    log_parser.parse(command_keywords)   
+    
     commands_data = log_parser.get_commands()
 
     # Step 2: Dynamically parse command outputs using registered parsers
