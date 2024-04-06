@@ -57,33 +57,42 @@ class ShowlineParser(CommandParserBase):
           return parsed_data
 
 
-    
-    
 class SlotsParser(CommandParserBase):
-    """_summary_
-    """
+        
     def __init__(self):
-            self.pattern = re.compile(
-            r"Type\s+:\s*(?P<Type>[\w\s-]+?),\s*.*?"
-            r"Card Version\s+:\s*(?P<Card_Version>[\w-]+)\s.*?"
-            r"Software Version:\s*(?P<Software_Version>[\w\.]+)\s.*?"
-            r"Shelf\s+:\s*(?P<Shelf>\d+)\s.*?"
-            r"Slot\s+:\s*(?P<Slot>\w+)\s.*?"
-            r"Uptime\s+:\s*(?P<Uptime>\d+\s+days?,\s+\d+\s+hours?,\s+\d+\s+minutes)",
-            re.DOTALL
-        )
+        self.pattern = re.compile(r"^(.*?):\s*(.*?)$", re.MULTILINE)
         
     def parse(self, blocks, merge=True):
+        """_summary_
+
+        command_data{'command': 'slots m1', 'output': 'MXK 1419 \nType            :*MXK-MC-TOP, 14U MGMT W/ TOP\nCard Version    : 800-03576-04-B\nEEPROM Version  : 1\nSerial #        : 15691446\nCLEI Code       : No CLEI   \nCard-Profile ID : 1/m1/20001\nShelf           : 1\nSlot            : m1\nROM Version     : MXK 3.4.2.144.007\nSoftware Version: MXK 3.4.2.272\nState           : RUNNING\nMode            : FUNCTIONAL\nHeartbeat check : enabled\nHeartbeat last  : FRI MAR 22 09:19:01 2024\nHeartbeat resp  : 317647\nHeartbeat late  : 0\nHbeat seq error : 0\nHbeat longest   : 11\nFault reset     : enabled\nPower fault mon : supported\nUptime          : 3 days, 16 hours, 14 minutes\n'}
+        
+        Args:
+            blocks (_type_): _description_
+            merge (bool, optional): _description_. Defaults to True.
+
+        Returns:
+            _type_: _description_
+        """
         parsed_data = defaultdict(list)
 
         for command_key, command_data in blocks.items():
             # Ensure we are reading the 'output' key from the command_data dictionary
-            matches = self.pattern.finditer(command_data['output'])
+            matches = self.pattern.findall(command_data['output'])
             print('matches', matches)
-            for match in matches:
-                parsed_data[command_key].append(match.groupdict())
+            result_dict = {key.strip(): value.strip() for key, value in matches}
+            filtered_dict = {
+                'Shelf': result_dict.get('Shelf'),
+                'Slot': result_dict.get('Slot'),
+                'Type': result_dict.get('Type').split(',')[0].strip(),
+                'Card Version': result_dict.get('Card Version'),
+                'Software Version': result_dict.get('Software Version'),
+                'Uptime': result_dict.get('Uptime')
+            }
+            parsed_data[command_key].append(filtered_dict)
         print('parsed_data', parsed_data)   
-        # Assuming merging is not required for this parser as every slot is unique
-        # However, if needed, a merging logic can be implemented here
-        # For the sake of this example, the merging logic is omitted
-        return [val for sublist in parsed_data.values() for val in sublist]
+
+        if merge:
+            return self.merge_parsed_data(parsed_data)
+        else:
+          return parsed_data

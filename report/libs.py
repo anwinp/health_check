@@ -18,7 +18,7 @@ def process_data(log_filepath):
 
     # Step 1: Read and prepare data
     log_parser = LogParser(log_filepath)
-    log_parser.parse(['showline'])  # Add more keywords as needed
+    log_parser.parse(['showline', 'slots'])  # Add more keywords as needed
     commands_data = log_parser.get_commands()
     # print(commands_data)
     # Step 2: Dynamically parse command outputs using registered parsers

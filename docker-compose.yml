@@ -36,12 +36,13 @@ services:
     command: celery -A report_generator worker -l info
     volumes:
       - .:/code
+      - uploaded_files:/data
+
     depends_on:
       - db
       - rabbitmq
     env_file:
       - .env
-      - uploaded_files:/data
 
   celerybeat:
     build: .
