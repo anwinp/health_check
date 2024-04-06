@@ -3,6 +3,9 @@ import re
 from collections import defaultdict
 
 class CommandParserBase:
+    def __init__(self):
+        self.pattern = re.compile(r"^(.*?):\s*(.*)$", re.MULTILINE)
+        
     def parse(self, blocks):
         raise NotImplementedError("Each parser must implement the parse method.")
     
@@ -12,6 +15,14 @@ class CommandParserBase:
             merged_data.extend(parsed_data[key])
         return merged_data
     
+    # Generic function for parsing key-value pairs with a colon
+    def parse_key_value_pairs(self, text, keywords=None):
+        matches = self.pattern.findall(text)
+        if keywords:
+            filtered_matches = [(key.strip(), value.strip()) for key, value in matches if key.strip() in keywords]
+            return {key: value for key, value in filtered_matches}
+        else:
+            return {key.strip(): value.strip() for key, value in matches}
 class ShowlineParser(CommandParserBase):
     def parse(self, blocks, merge=True):
         """
@@ -60,7 +71,7 @@ class ShowlineParser(CommandParserBase):
 class SlotsParser(CommandParserBase):
         
     def __init__(self):
-        self.pattern = re.compile(r"^(.*?):\s*(.*?)$", re.MULTILINE)
+        super().__init__()
         
     def parse(self, blocks, merge=True):
         """_summary_
@@ -77,19 +88,16 @@ class SlotsParser(CommandParserBase):
         parsed_data = defaultdict(list)
 
         for command_key, command_data in blocks.items():
-            # Ensure we are reading the 'output' key from the command_data dictionary
-            matches = self.pattern.findall(command_data['output'])
-            print('matches', matches)
-            result_dict = {key.strip(): value.strip() for key, value in matches}
-            filtered_dict = {
-                'Shelf': result_dict.get('Shelf'),
-                'Slot': result_dict.get('Slot'),
-                'Type': result_dict.get('Type').split(',')[0].strip(),
-                'Card Version': result_dict.get('Card Version'),
-                'Software Version': result_dict.get('Software Version'),
-                'Uptime': result_dict.get('Uptime')
-            }
-            parsed_data[command_key].append(filtered_dict)
+            result_dict = self.parse_key_value_pairs(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime'])
+            # filtered_dict = {
+            #     'Shelf': result_dict.get('Shelf'),
+            #     'Slot': result_dict.get('Slot'),
+            #     'Type': result_dict.get('Type').split(',')[0].strip(),
+            #     'Card Version': result_dict.get('Card Version'),
+            #     'Software Version': result_dict.get('Software Version'),
+            #     'Uptime': result_dict.get('Uptime')
+            # }
+            parsed_data[command_key].append(result_dict)
         print('parsed_data', parsed_data)   
 
         if merge:
