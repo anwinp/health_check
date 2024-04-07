@@ -5,3 +5,4 @@ media/data/files/*
 report_*.pdf
 report_*.xlsx
 
+~$*
