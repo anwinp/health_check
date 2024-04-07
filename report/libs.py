@@ -16,12 +16,20 @@ from .excel_generator import ExcelGenerator
 import datetime
 import yaml
 from django.conf import settings
+import os
 COMMAND_PATTERNS_FILE = settings.BASE_DIR / 'report' / 'command_patterns.yaml'
 
 def load_command_patterns():
     with open(COMMAND_PATTERNS_FILE, 'r') as file:
         return yaml.safe_load(file)
 
+
+def get_reports_folder_path():
+    media_folder = os.path.join(settings.BASE_DIR, 'media')
+    data_folder = os.path.join(media_folder, 'data')
+    reports_folder = os.path.join(data_folder, 'reports')
+    os.makedirs(reports_folder, exist_ok=True)
+    return reports_folder
 
 def process_data(log_filepath: str, create_report: bool = False, create_excel: bool = True):
     # Initialize the parser factory and register command parsers
@@ -66,7 +74,9 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
 
 
 def generate_report(output: dict, filename: str):
-    report_generator = ReportGenerator(filename)
+    reports_folder = get_reports_folder_path()
+    report_filepath = os.path.join(reports_folder, filename)
+    report_generator = ReportGenerator(report_filepath)
     for command, entries in output.items():
         if entries:
             heading = f"Report for {command}"
@@ -77,7 +87,9 @@ def generate_report(output: dict, filename: str):
 
 
 def generate_excel_report(output: dict, filename: str):
-    excel_generator = ExcelGenerator(filename)
+    reports_folder = get_reports_folder_path()
+    excel_filepath = os.path.join(reports_folder, filename)
+    excel_generator = ExcelGenerator(excel_filepath)
     for command, entries in output.items():
         if entries:
             heading = f"{command.title()}"
