@@ -155,21 +155,21 @@ class SlotsParser(CommandParserBase):
             result_dict = self.key_value_parser.parse(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State'])
             card_type = result_dict.get('Type')
 
-            component = cards_info.get(card_type)
+            card_mapping = cards_info.get(card_type)
             filtered_dict = {
-                'Component': component,
+                'Component': card_mapping['component'],
                 'Shelf': result_dict.get('Shelf'),
                 'Slot': result_dict.get('Slot'),
                 'Type': card_type.split(',')[0].strip(),
                 'Card Version': result_dict.get('Card Version'),
                 'Software Version': result_dict.get('Software Version'),
                 'Uptime': result_dict.get('Uptime'),
-                'Additional Information': card_type.split(',')[1].strip(),
+                'Additional Information': card_mapping['card_key'],
                 'State': result_dict.get('State'),
+                'Slots Status': card_mapping['status']
                 
             }
             parsed_data[command_key].append(filtered_dict)
-        print('parsed_data', parsed_data)   
 
         return self.return_parsed_data(parsed_data, merge)
 
@@ -178,7 +178,8 @@ class SlotsParser(CommandParserBase):
 
         # Pattern to detect category lines and card entry lines
         category_pattern = re.compile(r'^(Management Cards|Fabric Cards|Line Cards)$')
-        card_entry_pattern = re.compile(r'(\w+)\s*:(.*)')
+        card_entry_pattern = re.compile(r'(\w+)\s*:(.*)\((.*)\)')
+
 
         parsed_data = {}
         current_category = None
@@ -194,10 +195,14 @@ class SlotsParser(CommandParserBase):
             if current_category:
                 card_match = card_entry_pattern.match(line.strip())
                 if card_match:
-                    card_key, card_detail = card_match.groups()
+                    card_key, card_detail, status = card_match.groups()
                     card_detail = card_detail.strip().split(' (')[0]  # Extract card detail, exclude status
                     # Formulate the key as 'Category CardKey': 'CardDetail'
-                    parsed_data[card_detail] = f"{current_category} {card_key}"
+                    parsed_data[card_detail] = {
+                        'component': current_category,
+                        'card_key': card_key,
+                        'status': status
+                    }
 
         return parsed_data
 
