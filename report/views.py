@@ -21,6 +21,9 @@ import logging
 from django.http import JsonResponse
 log = logging.getLogger(__name__)
 from .libs import process_data
+from .models import Report
+from django.http import HttpResponse, Http404
+
 
 def report_catalog(request):
     return render(request, 'report/report_catalog.html')
@@ -31,36 +34,6 @@ def report_config(request):
     print('Hello, this is a test')
     return render(request, 'report/report_config.html')
 
-
-
-# create a file_list function to list the files uploaded into system and render it to files_list.html 
-# def file_list_old(request):
-#     files = []
-#     # Construct the full path for file uploads
-#     upload_root = os.path.join(settings.MEDIA_ROOT, 'data/files/')
-#     # Adjust os.walk to use the upload_root
-#     for root, dirs, filenames in os.walk(upload_root):
-
-#         for filename in filenames:
-#             file_path = os.path.join(root, filename)
-#             file_size = os.path.getsize(file_path)
-#             file_date = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
-#             file_date = timezone.make_aware(file_date, timezone.get_current_timezone())  # Make datetime aware
-#             # Convert file size to human-readable format
-#             if file_size < 1024:
-#                 file_size_str = f"{file_size} B"
-#             elif file_size < 1024 * 1024:
-#                 file_size_str = f"{file_size / 1024:.2f} KB"
-#             else:
-#                 file_size_str = f"{file_size / (1024 * 1024):.2f} MB"
-#             file_info = {
-#                 'filename': filename,
-#                 'file_size': file_size_str,
-#                 'file_date': file_date
-#             }
-#             files.append(file_info)
-#     print('FILE INFO', files)
-#     return render(request, 'report/file_list.html', {'files': files})
 
 def file_list(request):
     files = []
@@ -126,3 +99,25 @@ def delete_file(request, file_id):
         logging.error("File not found.")
         response = {'status': 'error', 'message': 'File not found.'}
         return JsonResponse(response, status=404)
+    
+    
+def report_catalog_view(request):
+    # Use the manager method to get reports with size
+    reports_with_size = Report.objects.get_all_reports_with_size()
+    print('REPORTS WITH SIZE', reports_with_size)   
+    return render(request, 'report/report_catalog.html', {'reports': reports_with_size})
+
+
+def download_report(request, report_id):
+    try:
+        report = Report.objects.get(id=report_id)
+        file_path = report.file_path  # Assuming `file_path` is the field storing the path
+
+        if os.path.exists(file_path):
+            with open(file_path, 'rb') as fh:
+                response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
+                response['Content-Disposition'] = f'inline; filename={os.path.basename(file_path)}'
+                return response
+        raise Http404
+    except Report.DoesNotExist:
+        raise Http404("Report does not exist")

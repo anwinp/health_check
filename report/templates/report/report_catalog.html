@@ -1,6 +1,38 @@
 {% extends 'home.html' %}
 
 {% block content %}
-    <!-- Your content for report_config.html goes here -->
-    <h1>Report Catalog</h1>
+<div class="container-fluid mt-4">
+    <h2 class="mb-3">Report Catalog</h2>
+    <table class="table w-100">
+        <thead>
+            <tr>
+                <th scope="col">Report Title</th>
+                <th scope="col">Report Type</th>
+                <th scope="col">File Path</th>
+                <th scope="col">File Size</th>
+                <th scope="col">Created At</th>
+                <th scope="col">Download</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report.title }}</td>
+                <td>{{ report.report_type }}</td>
+                <td>{{ report.file_path }}</td>
+                <td>{{ report.file_size }}</td>
+                <td>{{ report.created_at }}</td>
+                <td>
+                    <!-- Ensure the 'download_report' URL is set up in your urls.py -->
+                    <a href="{% url 'download_report' report.report_id %}" class="btn btn-primary btn-sm">Download</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">No reports available.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

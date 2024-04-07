@@ -19,14 +19,17 @@ from django.urls import path
 from .views import report_catalog, report_config, file_upload_view, file_list
 from django.urls import path
 from .views import report_catalog, report_config, file_upload_view, file_list, delete_file
-
+from .views import download_report, report_catalog_view
 
 urlpatterns = [
-    path('report-catalog/', report_catalog, name='report_catalog'),
+    path('report-catalog/', report_catalog_view, name='report_catalog'),
     # path('report-config/', report_config, name='report_config'),
     path('file-upload/', file_upload_view, name='file_upload'),
     path('files-list/', file_list, name='files_list'),
     path('delete-file/<int:file_id>/', delete_file, name='delete_file'),
+    path('download/<int:report_id>/', download_report, name='download_report'),
+
+    
 ]
 
 

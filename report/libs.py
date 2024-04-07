@@ -17,6 +17,7 @@ import datetime
 import yaml
 from django.conf import settings
 import os
+from .models import Report
 COMMAND_PATTERNS_FILE = settings.BASE_DIR / 'report' / 'command_patterns.yaml'
 
 def load_command_patterns():
@@ -83,6 +84,8 @@ def generate_report(output: dict, filename: str):
             headers = list(entries[0].keys())
             report_generator.add_table(entries, headers)
     report_generator.generate()
+    save_report_record(report_filepath, 'pdf')
+    
     print(f"Report generated at {report_generator.get_filepath()}")
 
 
@@ -96,9 +99,18 @@ def generate_excel_report(output: dict, filename: str):
             headers = list(entries[0].keys())
             excel_generator.add_table(entries, headers, sheet_name=heading)
     excel_generator.save()
+    save_report_record(excel_filepath, 'xlsx')
+
     print(f"Excel generated at {excel_generator.get_filepath()}")
 
     
+def save_report_record(report_filepath, report_type):
+    title = os.path.basename(report_filepath)
+    
+    # Here, just the path is being saved instead of the file itself
+    report = Report(title=title, report_type=report_type, file_path=report_filepath)
+    report.save()
+    print(f"{report_type.upper()} report record saved with ID: {report.id}")
 
 # def process_data(file_path):
 #     commands = {}
