@@ -14,16 +14,31 @@ from .log_reader import LogParser
 from .report_generator import ReportGenerator
 from .excel_generator import ExcelGenerator
 import datetime
+import yaml
+from django.conf import settings
+COMMAND_PATTERNS_FILE = settings.BASE_DIR / 'report' / 'command_patterns.yaml'
+
+def load_command_patterns():
+    with open(COMMAND_PATTERNS_FILE, 'r') as file:
+        return yaml.safe_load(file)
+
 
 def process_data(log_filepath: str, create_report: bool = False, create_excel: bool = True):
     # Initialize the parser factory and register command parsers
     parser_factory = ParserFactory()
     for name, ParserClass in CommandParserBase.registry.items():
         parser_factory.register_parser(name, ParserClass)
-        
-    log_parser = LogParser(log_filepath)
+    
+    command_key_to_fetch_pattern = load_command_patterns()
+
+    log_parser = LogParser(log_filepath, command_key_to_fetch_pattern)
     command_keywords = list(CommandParserBase.registry.keys())
-    log_parser.parse(command_keywords)   
+    
+    # Check if command_keywords and command_key_to_fetch_pattern keys match
+    if set(command_keywords) != set(command_key_to_fetch_pattern.keys()):
+        raise ValueError("Parser keys don't match Keys defined in the yaml file")
+    
+    log_parser.parse()   
     
     commands_data = log_parser.get_commands()
 
@@ -65,7 +80,7 @@ def generate_excel_report(output: dict, filename: str):
     excel_generator = ExcelGenerator(filename)
     for command, entries in output.items():
         if entries:
-            heading = f"Report for {command}"
+            heading = f"{command.title()}"
             headers = list(entries[0].keys())
             excel_generator.add_table(entries, headers, sheet_name=heading)
     excel_generator.save()

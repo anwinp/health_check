@@ -31,6 +31,7 @@ class KeyValueParser:
 
         return parsed_data
     
+    
 class SpaceSeparatedKeyValueParser:
     def parse(self, text, keywords=None):
         """
@@ -60,6 +61,7 @@ class SpaceSeparatedKeyValueParser:
 
         return parsed_data
 
+
 class DataMerger:
     def merge(self, parsed_data):
         merged_data = []
@@ -76,6 +78,7 @@ class ParserMeta(type):
             cls.registry[cls.command_keyword] = cls
         super().__init__(name, bases, attrs)
         
+        
 class CommandParserBase(metaclass=ParserMeta):
     def __init__(self):
         self.key_value_parser = KeyValueParser()
@@ -91,50 +94,42 @@ class CommandParserBase(metaclass=ParserMeta):
         else:
             return parsed_data
 
+
 class ShowlineParser(CommandParserBase):
     command_keyword = 'showline'
     
     def parse(self, blocks, merge=True):
-        """
-        Parse log data from 'showline' commands into a dictionary format.
-
-        :param log_data: Dictionary containing command outputs
-        :return: Dictionary with parsed data ready for report generation
-        """
-        pattern = re.compile(
-            r'shelf = (\d+),\s+slot = (\w+),\s+line type = (\w+).*?line\n(.*?)(?=\nshelf = |\Z)',
-            re.MULTILINE | re.DOTALL
+        # Updated to capture optional port information
+        section_pattern = re.compile(
+            r"shelf = (\d+),\s+slot = (\w+),\s*(?:port (\d+),)?\s*line type = (\w+)(.*?)(?=\n-{72}|\Z)",
+            re.DOTALL
         )
-        port_pattern = re.compile(r'(\d+-\d+|\d+)\s+(.+)')
+        sub_port_pattern = re.compile(r"(\d+-\d+|\d+)\s+([A-Z\s]+)")
+
         parsed_data = {}
 
         for command_key, command_data in blocks.items():
-            if command_key.startswith('showline'):
-                matches = pattern.findall(command_data['output'])
-                parsed_data[command_key] = []
+            sections = section_pattern.findall(command_data['output'])
+            parsed_data[command_key] = []
 
-                for shelf, slot, line_type, port_statuses in matches:
-                    for line in port_statuses.strip().split('\n'):
-                        line = line.strip()
-                        # Skip dashed lines
-                        if '---' in line or not line:
-                            continue
-
-                        # Match the port range and status
-                        port_match = port_pattern.match(line)
-                        if port_match:
-                            port_range, status = port_match.groups()
-                            parsed_data[command_key].append({
-                                'Shelf': shelf,
-                                'Slot': slot,
-                                'Line Type': line_type,
-                                'Port Range': port_range,
-                                'Status': status.strip()
-                            })
-
+            for shelf, slot, port, line_type, statuses in sections:
+                port = port or ""  # Keep port as an empty string if not present
+                status_lines = statuses.strip().split('\n')
+                for status_line in status_lines:
+                    port_match = sub_port_pattern.match(status_line.strip())
+                    if port_match:
+                        sub_port_range, status = port_match.groups()
+                        parsed_data[command_key].append({
+                            'Shelf': shelf,
+                            'Slot': slot,
+                            'Port': port,  # Now including port
+                            'Line Type': line_type,
+                            'Sub Port Range': sub_port_range,
+                            'Status': ' '.join(status.split())  # Normalize spaces
+                        })
         return self.return_parsed_data(parsed_data, merge)
-
-
+    
+    
 class SlotsParser(CommandParserBase):
     command_keyword = 'slots'
     
@@ -154,17 +149,22 @@ class SlotsParser(CommandParserBase):
             _type_: _description_
         """
         parsed_data = defaultdict(list)
-
+        slots_output = blocks.pop('slots', None)
+        cards_info = self.parse_cards_info(slots_output['output'])
         for command_key, command_data in blocks.items():
             result_dict = self.key_value_parser.parse(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State'])
+            card_type = result_dict.get('Type')
+
+            component = cards_info.get(card_type)
             filtered_dict = {
+                'Component': component,
                 'Shelf': result_dict.get('Shelf'),
                 'Slot': result_dict.get('Slot'),
-                'Type': result_dict.get('Type').split(',')[0].strip(),
+                'Type': card_type.split(',')[0].strip(),
                 'Card Version': result_dict.get('Card Version'),
                 'Software Version': result_dict.get('Software Version'),
                 'Uptime': result_dict.get('Uptime'),
-                'Additional Information': result_dict.get('Type').split(',')[1].strip(),
+                'Additional Information': card_type.split(',')[1].strip(),
                 'State': result_dict.get('State'),
                 
             }
@@ -173,9 +173,37 @@ class SlotsParser(CommandParserBase):
 
         return self.return_parsed_data(parsed_data, merge)
 
-      
+    def parse_cards_info(self, text):
+        lines = text.split('\n')[1:]  # Skip the first line
+
+        # Pattern to detect category lines and card entry lines
+        category_pattern = re.compile(r'^(Management Cards|Fabric Cards|Line Cards)$')
+        card_entry_pattern = re.compile(r'(\w+)\s*:(.*)')
+
+        parsed_data = {}
+        current_category = None
+
+        for line in lines:
+            # Check for category lines
+            category_match = category_pattern.match(line.strip())
+            if category_match:
+                current_category = category_match.group(1)  # Capture the current category
+                continue
+
+            # Process card entry lines within the current category
+            if current_category:
+                card_match = card_entry_pattern.match(line.strip())
+                if card_match:
+                    card_key, card_detail = card_match.groups()
+                    card_detail = card_detail.strip().split(' (')[0]  # Extract card detail, exclude status
+                    # Formulate the key as 'Category CardKey': 'CardDetail'
+                    parsed_data[card_detail] = f"{current_category} {card_key}"
+
+        return parsed_data
+
+
 class SFPDataParser(CommandParserBase):
-    command_keyword = 'sfp show'
+    command_keyword = 'sfp'
     
     def __init__(self):
         super().__init__()
@@ -268,4 +296,3 @@ class RomVersionParser(CommandParserBase):
                         'Timestamp': timestamp
                     })
         return self.return_parsed_data(parsed_data, merge)
-

@@ -1,0 +1,11 @@
+showline:
+  - showline *
+slots:
+  - slots
+  - slots *
+sfp:
+  - sfp *
+showfataldata:
+  - showfataldata *
+romversion:
+  - romversion *
