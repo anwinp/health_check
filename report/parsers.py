@@ -103,7 +103,18 @@ class ColumnBasedParser:
         return parsed_data
 
 
-
+class TextSplitter:
+    @staticmethod
+    def split_text_by_pattern(text, pattern):
+        """
+        Splits the text by a given pattern and returns a list of (header, content) tuples.
+        """
+        sections = re.split(pattern, text)
+        headers = sections[1::2]  # Even indices after split (1, 3, 5, ...) are headers
+        contents = sections[2::2]  # Odd indices after split (2, 4, 6, ...) are contents
+        return list(zip(headers, contents))
+    
+    
 class DataMerger:
     def merge(self, parsed_data):
         merged_data = []
@@ -310,11 +321,25 @@ class ShowFatalDataParser(CommandParserBase):
         
     def parse(self, blocks, merge=True):
         parsed_data = defaultdict(list)
+        splitter = TextSplitter()
+
+        fatal_record_pattern = re.compile(r'(Fatal record#\s*\d+)')
+
         for command_key, command_data in blocks.items():
-            result_dict = self.key_value_parser.parse(command_data['output'], keywords=self.keywords)
-            if result_dict is None:
-                continue
-            parsed_data[command_key].append(result_dict)
+            # Use the splitter function to divide the text into sections by "Fatal record#"
+            records = splitter.split_text_by_pattern(command_data['output'], fatal_record_pattern)
+
+            for header, content in records:
+                # Extract the record number from the header
+                record_number_match = re.search(r'Fatal record#\s*(\d+)', header)
+                record_number = record_number_match.group(1) if record_number_match else "Unknown"
+
+                # Parse the content of each record
+                result_dict = self.key_value_parser.parse(content, keywords=self.keywords)
+                if result_dict:
+                    result_dict["Card Number"] = record_number
+                    parsed_data[command_key].append(result_dict)
+
         return self.return_parsed_data(parsed_data, merge)
 
         
