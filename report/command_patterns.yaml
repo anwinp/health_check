@@ -1,3 +1,5 @@
+alarm show:
+  - alarm show
 showline:
   - showline *
 slots:

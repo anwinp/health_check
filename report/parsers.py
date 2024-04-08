@@ -62,6 +62,48 @@ class SpaceSeparatedKeyValueParser:
         return parsed_data
 
 
+class ColumnBasedParser:
+    def __init__(self):
+        self.headers = []
+        self.column_positions = []
+
+    def detect_headers_and_data_start(self, lines):
+        """Detects headers and their positions to parse columns accurately."""
+        for i, line in enumerate(lines):
+            if "----" in line:  # Assuming dashed lines under headers
+                self.headers = re.findall(r'\S+', lines[i - 1])
+                # Detect the start position of each header based on non-space characters following spaces.
+                self.column_positions = [match.start() for match in re.finditer(r'\S+(?=\s|$)', lines[i - 1])]
+                return i + 1  # Return the index where data starts
+
+    def parse_line_into_columns(self, line):
+        """Parses a line into data columns based on the positions of headers."""
+        row_data = {}
+        for header, start_pos in zip(self.headers, self.column_positions):
+            end_pos = self.column_positions[self.column_positions.index(start_pos) + 1] if self.column_positions.index(start_pos) + 1 < len(self.column_positions) else None
+            # Extract the substring for each column based on start and end positions.
+            value = line[start_pos:end_pos].strip() if end_pos else line[start_pos:].strip()
+            row_data[header] = value
+        return row_data
+
+    def parse(self, text):
+        lines = text.strip().split('\n')
+        data_start_line_index = self.detect_headers_and_data_start(lines)
+        
+        if data_start_line_index is None:
+            print("Headers not detected.")
+            return []
+
+        parsed_data = []
+        for line in lines[data_start_line_index:]:
+            if line.strip() and not line.startswith('----'):  # Exclude dashed lines and empty lines.
+                row_data = self.parse_line_into_columns(line)
+                parsed_data.append(row_data)
+
+        return parsed_data
+
+
+
 class DataMerger:
     def merge(self, parsed_data):
         merged_data = []
@@ -83,6 +125,7 @@ class CommandParserBase(metaclass=ParserMeta):
     def __init__(self):
         self.key_value_parser = KeyValueParser()
         self.space_separated_key_value_parser = SpaceSeparatedKeyValueParser()
+        self.column_based_key_value_parser = ColumnBasedParser()
         self.data_merger = DataMerger()
 
     def parse(self, blocks):
@@ -300,4 +343,18 @@ class RomVersionParser(CommandParserBase):
                         'ROM ersion': rom_version,
                         'Timestamp': timestamp
                     })
+        return self.return_parsed_data(parsed_data, merge)
+
+
+class AlarmParser(CommandParserBase):
+    command_keyword = 'alarm show'
+    
+    def __init__(self):
+        super().__init__()
+        
+    def parse(self, blocks, merge=True):
+        parsed_data = defaultdict(list)
+        for command_key, command_data in blocks.items():
+            result_dict = self.column_based_key_value_parser.parse(command_data['output'])
+            parsed_data[command_key].extend(result_dict)
         return self.return_parsed_data(parsed_data, merge)
