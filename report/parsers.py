@@ -232,7 +232,7 @@ class SlotsParser(CommandParserBase):
         slots_output = blocks.pop('slots', None)
         cards_info = self.parse_cards_info(slots_output['output'])
         for command_key, command_data in blocks.items():
-            result_dict = self.key_value_parser.parse(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State'])
+            result_dict = self.key_value_parser.parse(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State', 'ROM Version', 'Mode', 'Serial #'])
             card_type = result_dict.get('Type')
 
             card_mapping = cards_info.get(card_type)
@@ -244,6 +244,9 @@ class SlotsParser(CommandParserBase):
                 'Card Version': result_dict.get('Card Version'),
                 'Software Version': result_dict.get('Software Version'),
                 'Uptime': result_dict.get('Uptime'),
+                'Mode': result_dict.get('Mode'),
+                'ROM Version': result_dict.get('ROM Version'),
+                'Serial Number': result_dict.get('Serial #'),
                 'Additional Information': card_mapping['card_key'],
                 'State': result_dict.get('State'),
                 'Slots Status': card_mapping['status']
@@ -294,12 +297,16 @@ class SFPDataParser(CommandParserBase):
         super().__init__()
         self.keyword_mapping = {
             "vendorName": "Vendor Name",
+            "vendorOui": "Vendor OUI",
             "vendorPartNumber": "Vendor Part Number",
+            "vendorRevisionLevel": "Vendor Revision Level",
             "serialNumber": "Serial Number",
             "manufacturingDateCode": "Manufacturing Date",
+            "connectorType": "Connector Type",
+            "transceiverType": "Transceiver Type",
             "nominalBitRate": "Nominal Bit Rate (Gbps)",
-            "upperBitRateMarginPercentage": "Upper Bit Rate Margin (%)",
-            "lowerBitRateMarginPercentage": "Lower Bit Rate Margin (%)"
+            "nineTo125mmFiberLinkLengthKm": "9/125mm Fiber Link Length (km)",
+            "nineTo125mmFiberLinkLength100m": "9/125mm Fiber Link Length (100m)",
         }
         self.interface_pattern = re.compile(r"SFP Data for interface (.+)")
         
@@ -413,46 +420,59 @@ class AlarmParser(CommandParserBase):
     
 
 # class ShelfCtrlParser(CommandParserBase):
-    command_keyword = 'shelfctrl monitor'
+    # command_keyword = 'shelfctrl monitor'
+    
+    # def __init__(self):
+    #     super().__init__()
+        
+    # def parse_section(self, section_name, section_content):
+    #     """
+    #     Parse individual section of the shelfctrl monitor output.
+    #     """
+    #     parsed_section_data = []
+
+    #     # Handle different sections with custom logic
+    #     if "Chassis Temperatures" in section_name or "Fan Power Supplies & Alarm" in section_name:
+    #         lines = section_content.split("\n")
+    #         for line in lines:
+    #             if ":" in line:  # Key-Value pair
+    #                 key, value = [part.strip() for part in line.split(":", 1)]
+    #                 parsed_section_data.append({"Component": key, "Status": value})
+    #             elif line.strip() and not line.startswith("----"):  # Other entries
+    #                 components = re.split(r'\s{2,}', line.strip())  # Split on two or more spaces
+    #                 if len(components) == 2:
+    #                     parsed_section_data.append({"Component": components[0], "Status": components[1]})
+    #     elif "Device" in section_name:
+    #         # Similar logic to above, adjusted for "Device" section specifics
+    #         lines = section_content.split("\n")
+    #         for line in lines:
+    #             if line.strip() and not line.startswith("----"):
+    #                 key, value = [part.strip() for part in line.split("\t", 1)]
+    #                 parsed_section_data.append({"Component": key, "Status": value})
+    #     # Extend this if-elif block for other specific sections as needed
+
+    #     return parsed_section_data
+
+    # def parse(self, blocks, merge=True):
+    #     parsed_data = defaultdict(list)
+    #     for command_key, command_data in blocks.items():
+    #         sections = TextSplitter.split_text_into_sections(command_data['output'])
+    #         for section_name, section_content in sections:
+    #             section_parsed_data = self.parse_section(section_name, section_content)
+    #             if section_parsed_data:
+    #                 parsed_data[command_key].extend(section_parsed_data)
+        
+    #     return self.return_parsed_data(parsed_data, merge)
+    
+class EEShowBackPlaneParser(CommandParserBase):
+    command_keyword = 'eeshow backplane'
     
     def __init__(self):
         super().__init__()
         
-    def parse_section(self, section_name, section_content):
-        """
-        Parse individual section of the shelfctrl monitor output.
-        """
-        parsed_section_data = []
-
-        # Handle different sections with custom logic
-        if "Chassis Temperatures" in section_name or "Fan Power Supplies & Alarm" in section_name:
-            lines = section_content.split("\n")
-            for line in lines:
-                if ":" in line:  # Key-Value pair
-                    key, value = [part.strip() for part in line.split(":", 1)]
-                    parsed_section_data.append({"Component": key, "Status": value})
-                elif line.strip() and not line.startswith("----"):  # Other entries
-                    components = re.split(r'\s{2,}', line.strip())  # Split on two or more spaces
-                    if len(components) == 2:
-                        parsed_section_data.append({"Component": components[0], "Status": components[1]})
-        elif "Device" in section_name:
-            # Similar logic to above, adjusted for "Device" section specifics
-            lines = section_content.split("\n")
-            for line in lines:
-                if line.strip() and not line.startswith("----"):
-                    key, value = [part.strip() for part in line.split("\t", 1)]
-                    parsed_section_data.append({"Component": key, "Status": value})
-        # Extend this if-elif block for other specific sections as needed
-
-        return parsed_section_data
-
     def parse(self, blocks, merge=True):
         parsed_data = defaultdict(list)
         for command_key, command_data in blocks.items():
-            sections = TextSplitter.split_text_into_sections(command_data['output'])
-            for section_name, section_content in sections:
-                section_parsed_data = self.parse_section(section_name, section_content)
-                if section_parsed_data:
-                    parsed_data[command_key].extend(section_parsed_data)
-        
+            result_dict = self.key_value_parser.parse(command_data['output'])
+            parsed_data[command_key].append(result_dict)
         return self.return_parsed_data(parsed_data, merge)

@@ -11,3 +11,5 @@ showfataldata:
   - showfataldata *
 romversion:
   - romversion *
+eeshow backplane:
+  - eeshow backplane

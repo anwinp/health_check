@@ -64,8 +64,8 @@ class FileUpload(models.Model):
 
 class ReportManager(models.Manager):
     def get_all_reports_with_size(self):
-            # Get all reports with file size
-        reports = self.get_queryset().all()
+        # Get all reports with file size, ordered by created_at in descending order
+        reports = self.get_queryset().order_by('-created_at')
         reports_with_size = []
         for report in reports:
             report_with_size = {
