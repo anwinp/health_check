@@ -114,6 +114,32 @@ class TextSplitter:
         contents = sections[2::2]  # Odd indices after split (2, 4, 6, ...) are contents
         return list(zip(headers, contents))
     
+    # @staticmethod
+    # def split_text_into_sections(text):
+    #     """
+    #     Splits the text into sections based on dashed lines, including the section titles.
+
+    #     Args:
+    #         text (str): The input text to split.
+
+    #     Returns:
+    #         list: A list of sections, each represented as a string including its title.
+    #     """
+    #     # This pattern looks for any text followed by a line of dashes and captures everything
+    #     # until the next line of dashes or the end of the text. It also captures the line immediately
+    #     # preceding the dashes, assuming it's the title.
+    #     pattern = r'(.*\n)?-+\n(.*?)(?=-+\n|$)'
+        
+    #     sections = []
+    #     for match in re.finditer(pattern, text, re.DOTALL):
+    #         section_title, section_content = match.groups()
+    #         if section_title:
+    #             section = f"{section_title}{section_content}".strip()
+    #         else:
+    #             section = section_content.strip()
+    #         sections.append(section)
+        
+    #     return sections
     
 class DataMerger:
     def merge(self, parsed_data):
@@ -382,4 +408,51 @@ class AlarmParser(CommandParserBase):
         for command_key, command_data in blocks.items():
             result_dict = self.column_based_key_value_parser.parse(command_data['output'])
             parsed_data[command_key].extend(result_dict)
+        return self.return_parsed_data(parsed_data, merge)
+    
+    
+
+# class ShelfCtrlParser(CommandParserBase):
+    command_keyword = 'shelfctrl monitor'
+    
+    def __init__(self):
+        super().__init__()
+        
+    def parse_section(self, section_name, section_content):
+        """
+        Parse individual section of the shelfctrl monitor output.
+        """
+        parsed_section_data = []
+
+        # Handle different sections with custom logic
+        if "Chassis Temperatures" in section_name or "Fan Power Supplies & Alarm" in section_name:
+            lines = section_content.split("\n")
+            for line in lines:
+                if ":" in line:  # Key-Value pair
+                    key, value = [part.strip() for part in line.split(":", 1)]
+                    parsed_section_data.append({"Component": key, "Status": value})
+                elif line.strip() and not line.startswith("----"):  # Other entries
+                    components = re.split(r'\s{2,}', line.strip())  # Split on two or more spaces
+                    if len(components) == 2:
+                        parsed_section_data.append({"Component": components[0], "Status": components[1]})
+        elif "Device" in section_name:
+            # Similar logic to above, adjusted for "Device" section specifics
+            lines = section_content.split("\n")
+            for line in lines:
+                if line.strip() and not line.startswith("----"):
+                    key, value = [part.strip() for part in line.split("\t", 1)]
+                    parsed_section_data.append({"Component": key, "Status": value})
+        # Extend this if-elif block for other specific sections as needed
+
+        return parsed_section_data
+
+    def parse(self, blocks, merge=True):
+        parsed_data = defaultdict(list)
+        for command_key, command_data in blocks.items():
+            sections = TextSplitter.split_text_into_sections(command_data['output'])
+            for section_name, section_content in sections:
+                section_parsed_data = self.parse_section(section_name, section_content)
+                if section_parsed_data:
+                    parsed_data[command_key].extend(section_parsed_data)
+        
         return self.return_parsed_data(parsed_data, merge)

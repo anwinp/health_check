@@ -44,9 +44,8 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
     command_keywords = list(CommandParserBase.registry.keys())
     
     # Check if command_keywords and command_key_to_fetch_pattern keys match
-    if set(command_keywords) != set(command_key_to_fetch_pattern.keys()):
+    if not set(command_key_to_fetch_pattern.keys()).issubset(set(command_keywords)):
         raise ValueError("Parser keys don't match Keys defined in the yaml file")
-    
     log_parser.parse()   
     
     commands_data = log_parser.get_commands()
