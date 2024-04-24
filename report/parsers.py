@@ -479,7 +479,7 @@ class EEShowBackPlaneParser(CommandParserBase):
         return self.return_parsed_data(parsed_data, merge)
     
 
-class GponOnuStatus(CommandParserBase):
+class GponOnuStatusParser(CommandParserBase):
     command_keyword = 'GPON-ONU-Stats'
     
     def __init__(self):
@@ -543,4 +543,67 @@ class GponOnuStatus(CommandParserBase):
             result = self.parse_gpon_data(command_data['output'], slot, keywords)
             # result_dict = self.column_based_key_value_parser.parse(command_data['output'])
             parsed_data[command_key].extend(result)
+        return self.return_parsed_data(parsed_data, merge)
+    
+class CardStatsParser(CommandParserBase):
+    command_keyword = 'Card Stats'
+    
+    def __init__(self):
+        super().__init__()
+    
+    def parse_card_stats(self, data):
+        """
+        Parses a block of system status data into a list of dictionaries with formatted values.
+        Uses detailed regular expressions to accurately extract each field based on expected patterns.
+        :param data: Multi-line string containing the raw data.
+        :return: List of dictionaries where each dictionary represents the status of one slot.
+        """
+        # Split the data into lines
+        lines = data.strip().split('\n')
+        
+        # Define a regex that matches the detailed structure of each line
+        line_regex = re.compile(
+            r'(\w+\*?)\s+'  # Slot, possibly with an asterisk
+            r'(\d+)\s+'  # CPU Idle (%)
+            r'(\d+)\s+'  # CPU Usage (%)
+            r'(\d+)\s+'  # CPU high (not used)
+            r'(\d+)\s+'  # services (not used)
+            r'(\d+)\s+'  # framework (not used)
+            r'(\d+)\s+'  # low (not used)
+            r'(\d+\.\d+)\s+'  # Memory Utilization (%)
+            r'(\d+)\s+'  # Card Memory Used (KB)
+            r'(\d+)\s+'  # Card Memory Peak (KB)
+            r'(\d+)\s+'  # Card Memory Available (KB)
+            r'(\d+ - OK)\s+'  # Status
+            r'(\d{1,2}:\d{2}:\d{2}:\d{2})\s+'  # Uptime
+            r'(.+)$'  # Software Version
+        )
+        
+        parsed_data = []
+        for line in lines[2:]:  # skip the header lines
+            match = line_regex.match(line.strip())
+            if match:
+                # Extract all matched groups
+                groups = match.groups()
+                slot_data = {
+                    "Slot": groups[0],
+                    "CPU Idle (%)": int(groups[1]),
+                    "CPU Usage (%)": int(groups[2]),
+                    "Memory Utilization (%)": float(groups[7]),
+                    "Card Memory Total (KB)": format(int(groups[8]), ','),
+                    "Card Memory Peak (KB)": format(int(groups[9]), ','),
+                    "Card Memory Available (KB)": format(int(groups[10]), ','),
+                    "Status": groups[11],
+                    "Uptime": groups[12],
+                    "Software Version": groups[13]
+                }
+                parsed_data.append(slot_data)
+        
+        return parsed_data
+
+    def parse(self, blocks, merge=True):
+        parsed_data = defaultdict(list)
+        for command_key, command_data in blocks.items():
+            result_dict = self.parse_card_stats(command_data['output'])
+            parsed_data[command_key].extend(result_dict)
         return self.return_parsed_data(parsed_data, merge)

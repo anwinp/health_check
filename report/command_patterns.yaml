@@ -15,3 +15,5 @@ HW Inventory Backplane:
   - eeshow backplane
 GPON-ONU-Stats:
   - rcom *
+Card Stats:
+  - card stats all
