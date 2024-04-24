@@ -1,17 +1,17 @@
-alarm show:
+Alarms:
   - alarm show
-showline:
+Line-Stats:
   - showline *
-slots:
+Slots - Status:
   - slots
   - slots *
-sfp:
+HW Inventory - Sfp:
   - sfp *
-showfataldata:
+Alarms - Fatal Logs:
   - showfataldata *
-romversion:
+HW Inventory - Card ROM Version:
   - romversion *
-eeshow backplane:
+HW Inventory Backplane:
   - eeshow backplane
-rcom:
+GPON-ONU-Stats:
   - rcom *

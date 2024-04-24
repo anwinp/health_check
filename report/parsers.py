@@ -176,7 +176,7 @@ class CommandParserBase(metaclass=ParserMeta):
 
 
 class ShowlineParser(CommandParserBase):
-    command_keyword = 'showline'
+    command_keyword = 'Line-Stats'
     
     def parse(self, blocks, merge=True):
         # Updated to capture optional port information
@@ -211,7 +211,7 @@ class ShowlineParser(CommandParserBase):
     
     
 class SlotsParser(CommandParserBase):
-    command_keyword = 'slots'
+    command_keyword = 'Slots - Status'
     
     def __init__(self):
         super().__init__()
@@ -291,7 +291,7 @@ class SlotsParser(CommandParserBase):
 
 
 class SFPDataParser(CommandParserBase):
-    command_keyword = 'sfp'
+    command_keyword = 'HW Inventory - Sfp'
     
     def __init__(self):
         super().__init__()
@@ -340,7 +340,7 @@ class SFPDataParser(CommandParserBase):
 
 
 class ShowFatalDataParser(CommandParserBase):
-    command_keyword = 'showfataldata'
+    command_keyword = 'Alarms - Fatal Logs'
     
     def __init__(self):
         super().__init__()
@@ -377,7 +377,7 @@ class ShowFatalDataParser(CommandParserBase):
 
         
 class RomVersionParser(CommandParserBase):
-    command_keyword = 'romversion'
+    command_keyword = 'HW Inventory - Card ROM Version'
     
     def __init__(self):
         super().__init__()
@@ -405,7 +405,7 @@ class RomVersionParser(CommandParserBase):
 
 
 class AlarmParser(CommandParserBase):
-    command_keyword = 'alarm show'
+    command_keyword = 'Alarms'
     
     def __init__(self):
         super().__init__()
@@ -466,7 +466,7 @@ class AlarmParser(CommandParserBase):
     
 
 class EEShowBackPlaneParser(CommandParserBase):
-    command_keyword = 'eeshow backplane'
+    command_keyword = 'HW Inventory Backplane'
     
     def __init__(self):
         super().__init__()
@@ -480,7 +480,7 @@ class EEShowBackPlaneParser(CommandParserBase):
     
 
 class GponOnuStatus(CommandParserBase):
-    command_keyword = 'rcom'
+    command_keyword = 'GPON-ONU-Stats'
     
     def __init__(self):
         super().__init__()
