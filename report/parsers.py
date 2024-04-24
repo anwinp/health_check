@@ -464,6 +464,7 @@ class AlarmParser(CommandParserBase):
         
     #     return self.return_parsed_data(parsed_data, merge)
     
+
 class EEShowBackPlaneParser(CommandParserBase):
     command_keyword = 'eeshow backplane'
     
@@ -475,4 +476,71 @@ class EEShowBackPlaneParser(CommandParserBase):
         for command_key, command_data in blocks.items():
             result_dict = self.key_value_parser.parse(command_data['output'])
             parsed_data[command_key].append(result_dict)
+        return self.return_parsed_data(parsed_data, merge)
+    
+
+class GponOnuStatus(CommandParserBase):
+    command_keyword = 'rcom'
+    
+    def __init__(self):
+        super().__init__()
+        
+    def extract_slot(self, command):
+        """
+        Extracts the slot information from a command string.
+
+        :param command: A string containing the command.
+        :return: A string formatted as 'x-y' where x is the slot after 'rcom' and y is the slot after 'showall'.
+        """
+        # Regular expression to find numbers after 'rcom' and 'showall'
+        match = re.search(r'rcom (\d+) gpononuponstat showall (\d+)', command)
+        if match:
+            slot_rcom = match.group(1)
+            slot_showall = match.group(2)
+            return f"{slot_rcom}-{slot_showall}"
+        return "No slot info found"
+
+    def parse_gpon_data(self, output, slot, keywords):
+        """
+        Parses GPON ONU status output into a list of dictionaries, each containing metrics for a single subport.
+
+        :param output: Multi-line string containing the command output.
+        :param keywords: List of keywords to include in the output.
+        :return: List of dictionaries where each dictionary contains data for a single subport.
+        """
+        subport_data = defaultdict(dict)
+        keywords_regex = '|'.join(re.escape(keyword) for keyword in keywords)  # Prepare regex pattern for keywords
+        pattern = rf'ONU\(\d+\) ({keywords_regex}):\s+(\d+)'
+
+        lines = output.split('\n')
+        for line in lines:
+            match = re.search(pattern, line)
+            if match:
+                metric = match.group(1).strip()
+                value = int(match.group(2).strip())
+                subport = line.split()[0]  # Extract 'ONU(1)' or similar
+
+                if subport not in subport_data:
+                    subport_data[subport]['Slot'] = slot
+                    subport_data[subport]['Sub Port'] = subport
+                    
+                subport_data[subport][metric] = value
+                
+
+        # Convert the dictionary to a list of dictionaries
+        return list(subport_data.values())
+
+    def parse(self, blocks, merge=True):
+        parsed_data = defaultdict(list)
+        keywords = [
+            "Upstream Bip UNits", "FEC Corrected Bytes", "FEC Corrected codewords",
+            "FEC Uncorrected codewords", "Total received codewords", "received bytes",
+            "received packets", "transmitted bytes", "transmitted packets",
+            "Unreceived bursts", "BIP Error", "Remote BIP Error", "Drift of Window Indications"
+        ]
+        for command_key, command_data in blocks.items():
+            slot = self.extract_slot(command_key)
+            result = self.parse_gpon_data(command_data['output'], slot, keywords)
+            # result_dict = self.column_based_key_value_parser.parse(command_data['output'])
+            parsed_data[command_key].extend(result)
         return self.return_parsed_data(parsed_data, merge)

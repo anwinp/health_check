@@ -13,3 +13,5 @@ romversion:
   - romversion *
 eeshow backplane:
   - eeshow backplane
+rcom:
+  - rcom *
