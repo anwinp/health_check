@@ -17,3 +17,5 @@ Card Stats:
   - card stats all
 ONU-Line-Stats:
   - showline *
+OLT-Line-Stats:
+  - showline *
