@@ -23,24 +23,25 @@ class LogParser:
         with open(self.filepath, 'r') as file:
             lines = file.readlines()
 
-        current_command_base = None
+        active_commands = []
         for line in lines:
             line = line.strip()
             if line.startswith('AUTO>'):
                 command_line = line[5:].strip()
+                active_commands = []  # Reset active commands for each new command line
                 for base_command, pattern_set in self.command_key_to_fetch_pattern.items():
                     if any(command_line == pattern or command_line.startswith(pattern[:-1]) for pattern in pattern_set):
                         if base_command not in self.commands:
                             self.commands[base_command] = {}
-                        # Use the base command as the key for storing command outputs
-                        self.commands[base_command][command_line] = {'command': command_line, 'output': ''}
-                        current_command_base = base_command
-                        break
-                else:
-                    current_command_base = None  # Reset if the line doesn't match any command pattern
-            elif current_command_base is not None:
-                # Append the line to the output of the current base command
-                self.commands[current_command_base][command_line]['output'] += line + '\n'
+                        if command_line not in self.commands[base_command]:
+                            self.commands[base_command][command_line] = {'command': command_line, 'output': ''}
+                        active_commands.append(base_command)  # Track all commands that match the line
+            elif active_commands:
+                # Append the line to the output of all active base commands
+                for base_command in active_commands:
+                    if command_line in self.commands[base_command]:
+                        self.commands[base_command][command_line]['output'] += line + '\n'
+
 
     
     def get_commands(self):
