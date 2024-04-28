@@ -1,7 +1,5 @@
 Alarms:
   - alarm show
-Line-Stats:
-  - showline *
 Slots - Status:
   - slots
   - slots *
@@ -17,3 +15,5 @@ GPON-ONU-Stats:
   - rcom *
 Card Stats:
   - card stats all
+ONU-Line-Stats:
+  - showline *
