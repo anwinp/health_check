@@ -385,22 +385,21 @@ class RomVersionParser(CommandParserBase):
     def parse(self, blocks, merge=True):
         parsed_data = defaultdict(list)
         for command_key, command_data in blocks.items():
-            if self.command_keyword in command_key:
-                # Extract card identifier (number or string) from command key
-                card_identifier_match = re.search(rf'{self.command_keyword}\s+(\S+)', command_key)
-                card_identifier = card_identifier_match.group(1) if card_identifier_match else "Unknown"
+            # Extract card identifier (number or string) directly from command_key
+            card_identifier_match = re.search(r'\s+(\w+)$', command_key)
+            card_identifier = card_identifier_match.group(1) if card_identifier_match else "Unknown"
 
-                # Split the command output by new lines to separate rom version and timestamp
-                lines = command_data['output'].split('\n')
-                if len(lines) >= 2:
-                    rom_version = lines[0].strip()
-                    timestamp = lines[1].strip()
-                    
-                    parsed_data[command_key].append({
-                        'Card': card_identifier,
-                        'ROM ersion': rom_version,
-                        'Timestamp': timestamp
-                    })
+            # Split the command output by new lines to separate rom version and timestamp
+            lines = command_data['output'].split('\n')
+            rom_version = lines[0].strip() if len(lines) > 0 else "N/A"
+            timestamp = lines[1].strip() if len(lines) > 1 else "N/A"
+
+            parsed_data[command_key].append({
+                'Card': card_identifier,
+                'ROM Version': rom_version,
+                'Timestamp': timestamp
+            })
+            
         return self.return_parsed_data(parsed_data, merge)
 
 
