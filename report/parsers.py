@@ -566,17 +566,17 @@ class CardStatsParser(CommandParserBase):
             r'(\w+\*?)\s+'  # Slot, possibly with an asterisk
             r'(\d+)\s+'  # CPU Idle (%)
             r'(\d+)\s+'  # CPU Usage (%)
-            r'(\d+)\s+'  # CPU high (not used)
-            r'(\d+)\s+'  # services (not used)
-            r'(\d+)\s+'  # framework (not used)
-            r'(\d+)\s+'  # low (not used)
+            r'\d+\s+'  # CPU high (not used)
+            r'\d+\s+'  # services (not used)
+            r'\d+\s+'  # framework (not used)
+            r'\d+\s+'  # low (not used)
             r'(\d+\.\d+)\s+'  # Memory Utilization (%)
             r'(\d+)\s+'  # Card Memory Used (KB)
             r'(\d+)\s+'  # Card Memory Peak (KB)
             r'(\d+)\s+'  # Card Memory Available (KB)
             r'(\d+ - OK)\s+'  # Status
-            r'(\d{1,2}:\d{2}:\d{2}:\d{2})\s+'  # Uptime
-            r'(.+)$'  # Software Version
+            r'(\d{1,3}:\d{2}:\d{2}:\d{2})\s+'  # Uptime
+            r'(.+)$'  # Software Version, captures till end
         )
         
         parsed_data = []
@@ -589,16 +589,16 @@ class CardStatsParser(CommandParserBase):
                     "Slot": groups[0],
                     "CPU Idle (%)": int(groups[1]),
                     "CPU Usage (%)": int(groups[2]),
-                    "Memory Utilization (%)": float(groups[7]),
-                    "Card Memory Total (KB)": format(int(groups[8]), ','),
-                    "Card Memory Peak (KB)": format(int(groups[9]), ','),
-                    "Card Memory Available (KB)": format(int(groups[10]), ','),
-                    "Status": groups[11],
-                    "Uptime": groups[12],
-                    "Software Version": groups[13]
+                    "Memory Utilization (%)": float(groups[3]),
+                    "Card Memory Used (KB)": format(int(groups[4]), ','),
+                    "Card Memory Peak (KB)": format(int(groups[5]), ','),
+                    "Card Memory Available (KB)": format(int(groups[6]), ','),
+                    "Status": groups[7],
+                    "Uptime": groups[8],
+                    "Software Version": groups[9]
                 }
                 parsed_data.append(slot_data)
-        
+            
         return parsed_data
 
     def parse(self, blocks, merge=True):

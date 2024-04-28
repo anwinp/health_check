@@ -7,7 +7,7 @@ class Command(BaseCommand):
     help = 'Test the process_data function'
 
     def handle(self, *args, **options):
-        file_path = '/Users/srikanthnadendla/PycharmProjects/visualizer/webapps/2024/Anwin_Collab/report_generator/sample_files/dgx-log.txt' or '/code/sample_files/dgx-log.txt'
+        file_path = '/Users/srikanthnadendla/PycharmProjects/visualizer/webapps/2024/Anwin_Collab/report_generator/sample_files/I3-Health Check-04262024/log_172.16.114.24' or '/code/sample_files/dgx-log.txt'
         # file_path = '/code/sample_files/dgx-log.txt'
 
         result = process_data(file_path)
