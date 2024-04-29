@@ -103,9 +103,11 @@ def delete_file(request, file_id):
     
 def report_catalog_view(request):
     # Use the manager method to get reports with size
+    stand_alone = request.GET.get('stand-alone', 'no')
+
     reports_with_size = Report.objects.get_all_reports_with_size()
     print('REPORTS WITH SIZE', reports_with_size)   
-    return render(request, 'report/report_catalog.html', {'reports': reports_with_size})
+    return render(request, 'report/report_catalog.html', {'reports': reports_with_size, stand_alone: stand_alone})
 
 
 def download_report(request, report_id):
