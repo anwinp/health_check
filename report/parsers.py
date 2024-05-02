@@ -616,35 +616,46 @@ class OnuLineStatsParser(CommandParserBase):
         
     def parse(self, blocks, merge=True):
         section_pattern = re.compile(
-            r"shelf = (\d+),\s+slot = (\w+),\s*(?:port (\d+),)?\s*line type = (\w+)(.*?)(?=\n-{72}|\Z)",
+            r"shelf = (\d+),\s+slot = (\w+),\s*(?:port (\d+),)?\s*(?:channel = (\d+),)?\s*line type = (\w+)(.*?)(?=\n-{72}|\Z)",
             re.DOTALL
         )
-        sub_port_pattern = re.compile(r"(\d+)-(\d+)\s+([A-Z\s]+)")
+        sub_port_pattern = re.compile(r"(\d+)-(\d+)\s+(.*)")
 
-        parsed_data = {}
+        parsed_data = defaultdict(list)
 
         for command_key, command_data in blocks.items():
             sections = section_pattern.findall(command_data['output'])
-            parsed_data[command_key] = []
-
-            for shelf, slot, port, line_type, statuses in sections:
+            for shelf, slot, port, channel, line_type, statuses in sections:
                 if line_type != "ONU":
-                    continue  # Ensure only 'ONU' line type is processed
+                    continue  # Process only 'ONU' line types
+                
+                # Set default values for optional fields
+                port = port if port else "1"
+                channel = channel if channel else "0"
 
-                port_data = {'Shelf': shelf, 'Slot': slot, 'Port': port or "1", 'Line Type': line_type + " subport"}  # Initialize data for each port
+                port_data = {
+                    'Shelf': shelf,
+                    'Slot': slot,
+                    'Port': port,
+                    'Channel': channel,
+                    'Line Type': line_type + " subport"
+                }
 
                 status_lines = statuses.strip().split('\n')[1:]  # Skip the 'subport' label line
                 for status_line in status_lines:
-                    port_match = sub_port_pattern.search(status_line.strip())
-                    if port_match:
+                    if port_match := sub_port_pattern.search(status_line.strip()):
                         start_subport, end_subport, status_string = port_match.groups()
                         statuses = status_string.split()
-                        for i, status in enumerate(statuses, start=int(start_subport)):
-                            port_data[str(i)] = status.strip()  # Assign each status to corresponding subport number
+                        subport_range = int(end_subport) - int(start_subport) + 1
 
-                parsed_data[command_key].append(port_data)  # Append the consolidated port data
+                        for i in range(subport_range):
+                            if i < len(statuses):
+                                port_data[str(int(start_subport) + i)] = statuses[i].strip()
+
+                parsed_data[command_key].append(port_data)
 
         return self.return_parsed_data(parsed_data, merge)
+
     
 class OLTLineStatsParser(CommandParserBase):
     command_keyword = 'OLT-Line-Stats'

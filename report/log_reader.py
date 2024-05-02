@@ -20,7 +20,7 @@ class LogParser:
         return expanded_patterns
 
     def parse(self):
-        with open(self.filepath, 'r') as file:
+        with open(self.filepath, 'r', encoding='ISO-8859-1') as file:
             lines = file.readlines()
 
         active_commands = []
