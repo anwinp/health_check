@@ -18,6 +18,8 @@ import yaml
 from django.conf import settings
 import os
 from .models import Report
+from pathlib import Path
+
 COMMAND_PATTERNS_FILE = settings.BASE_DIR / 'report' / 'command_patterns.yaml'
 
 def load_command_patterns():
@@ -52,6 +54,7 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
     
     commands_data = log_parser.get_commands()
 
+    file_name = Path(log_filepath).stem
     # Step 2: Dynamically parse command outputs using registered parsers
     output = {}
     for command, blocks in commands_data.items():
@@ -65,8 +68,8 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
             print(e)
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    report_filename = f"report_{timestamp}.pdf"
-    excel_report_filename = f"report_{timestamp}.xlsx"
+    report_filename = f"report_{file_name}_{timestamp}.pdf"
+    excel_report_filename = f"report_{file_name}_{timestamp}.xlsx"
 
     if create_report:
         generate_report(output, report_filename)
