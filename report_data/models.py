@@ -1,46 +1,40 @@
-# This is an auto-generated Django model module.
-# You'll have to do the following manually to clean this up:
-#   * Rearrange models' order
-#   * Make sure each model has one field with primary_key=True
-#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
-#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
-# Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
 
-
-class InventoryBp(models.Model):
-    node_ip_address = models.CharField(primary_key=True, max_length=255)  # The composite primary key (node_ip_address, serial_num) found, that is not supported. The first column is selected.
-    eeprom_contents = models.CharField(max_length=255)
-    eeprom_id = models.CharField(max_length=255)
-    version = models.CharField(max_length=255)
+class Node(models.Model):
+    ip_address = models.GenericIPAddressField(primary_key=True)
+    name = models.CharField(max_length=255)
+    
+class InventoryBackPlane(models.Model):
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
+    eeprom_contents = models.CharField(max_length=50)
+    eeprom_id = models.CharField(max_length=20)
+    version = models.CharField(max_length=10)
     size = models.IntegerField()
-    card_type = models.CharField(max_length=255)
-    card_version = models.CharField(max_length=255)
-    serial_num = models.CharField(max_length=255)
-    shelf_number = models.CharField(max_length=255)
-    clei_code = models.CharField(max_length=255)
-    cksum = models.CharField(max_length=255)
-    feature_bits_modification_date = models.CharField(max_length=255)
+    card_type = models.CharField(max_length=30)
+    card_version = models.CharField(max_length=20)
+    serial_num = models.CharField(max_length=20)
+    shelf_number = models.CharField(max_length=10)
+    clei_code = models.CharField(max_length=10)
+    cksum = models.CharField(max_length=10)
+    feature_bits_modification_date = models.CharField(max_length=25)
 
     class Meta:
-        managed = False
-        db_table = 'inventory_bp'
-        unique_together = (('node_ip_address', 'serial_num'),)
+        db_table = 'inventory_backplane'
+        unique_together = (('node', 'serial_num'),)
 
 
 class InventoryCard(models.Model):
     card = models.CharField(primary_key=True, max_length=10)
     rom_version = models.CharField(max_length=20)
     timestamp = models.DateTimeField()
-    node_ip = models.CharField(max_length=15, blank=True, null=True)
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
 
     class Meta:
-        managed = False
         db_table = 'inventory_card'
 
 
 class NetworkInterface(models.Model):
-    node_ip = models.CharField(primary_key=True, max_length=15)  # The composite primary key (node_ip, interface) found, that is not supported. The first column is selected.
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
     interface = models.CharField(max_length=50)
     vendor_name = models.CharField(max_length=100)
     vendor_oui = models.CharField(max_length=10)
@@ -50,29 +44,27 @@ class NetworkInterface(models.Model):
     manufacturing_date = models.DateField()
     connector_type = models.CharField(max_length=50)
     transceiver_type = models.CharField(max_length=50)
+    nominal_bit_rate_gbps = models.IntegerField()
     fiber_link_length_km = models.IntegerField()
     fiber_link_length_100m = models.IntegerField()
-    nominal_bit_rate_gbps = models.IntegerField()
 
     class Meta:
-        managed = False
         db_table = 'network_interface'
-        unique_together = (('node_ip', 'interface'),)
+        unique_together = (('node', 'interface'),)
 
 
-class NodeAlarms(models.Model):
-    node_ip = models.CharField(max_length=15)
+class Alarms(models.Model):
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
     resource_id = models.CharField(max_length=50)
     alarm_type = models.CharField(max_length=50)
     alarm_severity = models.CharField(max_length=20)
 
     class Meta:
-        managed = False
-        db_table = 'node_alarms'
+        db_table = 'alarms'
 
 
-class NodeCardStats(models.Model):
-    node_ip = models.CharField(max_length=15)
+class CardStats(models.Model):
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
     slot = models.CharField(max_length=10)
     cpu_idle_percent = models.IntegerField()
     cpu_usage_percent = models.IntegerField()
@@ -85,47 +77,37 @@ class NodeCardStats(models.Model):
     software_version = models.CharField(max_length=50)
 
     class Meta:
-        managed = False
-        db_table = 'node_card_stats'
+        db_table = 'card_stats'
 
 
-class NodeGponOnuStats(models.Model):
-    node_ip = models.CharField(max_length=15)
+class GponOnuStats(models.Model):
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
     slot = models.CharField(max_length=5)
     sub_port = models.CharField(max_length=10)
-    upstream_bip_units = models.DecimalField(max_digits=65535, decimal_places=65535)
-    fec_corrected_bytes = models.DecimalField(max_digits=65535, decimal_places=65535)
-    fec_corrected_codewords = models.DecimalField(max_digits=65535, decimal_places=65535)
-    fec_uncorrected_codewords = models.DecimalField(max_digits=65535, decimal_places=65535)
-    total_received_codewords = models.DecimalField(max_digits=65535, decimal_places=65535)
-    received_bytes = models.DecimalField(max_digits=65535, decimal_places=65535)
-    received_packets = models.DecimalField(max_digits=65535, decimal_places=65535)
-    transmitted_bytes = models.DecimalField(max_digits=65535, decimal_places=65535)
-    transmitted_packets = models.DecimalField(max_digits=65535, decimal_places=65535)
-    unreceived_bursts = models.DecimalField(max_digits=65535, decimal_places=65535)
-    bip_error = models.DecimalField(max_digits=65535, decimal_places=65535)
-    remote_bip_error = models.DecimalField(max_digits=65535, decimal_places=65535)
-    drift_of_window_indications = models.DecimalField(max_digits=65535, decimal_places=65535)
+    upstream_bip_units = models.DecimalField(max_digits=20, decimal_places=2)
+    fec_corrected_bytes = models.BigIntegerField()
+    fec_corrected_codewords = models.BigIntegerField()
+    fec_uncorrected_codewords = models.BigIntegerField()
+    total_received_codewords = models.BigIntegerField()
+    received_bytes = models.BigIntegerField()
+    received_packets = models.BigIntegerField()
+    transmitted_bytes = models.BigIntegerField()
+    transmitted_packets = models.BigIntegerField()
+    unreceived_bursts = models.BigIntegerField()
+    bip_error = models.BigIntegerField()
+    remote_bip_error = models.BigIntegerField()
+    drift_of_window_indications = models.IntegerField()
 
     class Meta:
-        managed = False
-        db_table = 'node_gpon_onu_stats'
+        db_table = 'gpon_onu_stats'
 
 
-class NodeInfo(models.Model):
-    node_ip = models.CharField(primary_key=True, max_length=15)
-    node_name = models.CharField(max_length=255, blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'node_info'
-
-
-class NodeOltLineStatus(models.Model):
-    node_ip = models.CharField(max_length=15)
+class OltLineStatus(models.Model):
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
     shelf = models.IntegerField()
     slot = models.IntegerField()
     port = models.IntegerField()
+    channel = models.IntegerField()
     line_type = models.CharField(max_length=20)
     line_1 = models.CharField(max_length=10)
     line_2 = models.CharField(max_length=10)
@@ -145,15 +127,15 @@ class NodeOltLineStatus(models.Model):
     line_16 = models.CharField(max_length=10)
 
     class Meta:
-        managed = False
-        db_table = 'node_olt_line_status'
+        db_table = 'olt_line_status'
 
 
-class NodeOnuLineStatus(models.Model):
-    node_ip = models.CharField(max_length=15)
+class OnuLineStatus(models.Model):
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
     shelf = models.IntegerField()
     slot = models.IntegerField()
     port = models.IntegerField()
+    channel = models.IntegerField()
     line_type = models.CharField(max_length=20)
     line_1 = models.CharField(max_length=10)
     line_2 = models.CharField(max_length=10)
@@ -189,26 +171,24 @@ class NodeOnuLineStatus(models.Model):
     line_32 = models.CharField(max_length=10)
 
     class Meta:
-        managed = False
-        db_table = 'node_onu_line_status'
+        db_table = 'onu_line_status'
 
 
-class NodeSlotStatus(models.Model):
-    node_ip = models.CharField(max_length=15)
-    component = models.CharField(max_length=100)
+class SlotStatus(models.Model):
+    node = models.ForeignKey(Node, on_delete=models.CASCADE)
+    component = models.CharField(max_length=50)
     shelf = models.IntegerField()
-    slot = models.CharField(max_length=10)
-    type = models.CharField(max_length=100)
-    card_version = models.CharField(max_length=50)
-    software_version = models.CharField(max_length=50)
-    uptime = models.DurationField()
-    mode = models.CharField(max_length=50)
-    rom_version = models.CharField(max_length=50)
-    serial_number = models.CharField(max_length=50)
-    additional_information = models.CharField(max_length=100, blank=True, null=True)
+    slot = models.CharField(max_length=5)
+    type = models.CharField(max_length=50)
+    card_version = models.CharField(max_length=20)
+    software_version = models.CharField(max_length=20)
+    uptime = models.CharField(max_length=50)
+    mode = models.CharField(max_length=20)
+    rom_version = models.CharField(max_length=20)
+    serial_number = models.CharField(max_length=20)
+    additional_information = models.CharField(max_length=50, blank=True, null=True)
     state = models.CharField(max_length=20)
     slots_status = models.CharField(max_length=20)
 
     class Meta:
-        managed = False
-        db_table = 'node_slot_status'
+        db_table = 'slot_status'
