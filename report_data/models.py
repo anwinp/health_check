@@ -2,8 +2,12 @@ from django.db import models
 
 class Node(models.Model):
     ip_address = models.GenericIPAddressField(primary_key=True)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     
+    class Meta:
+        db_table = 'node'
+        
+
 class InventoryBackPlane(models.Model):
     node = models.ForeignKey(Node, on_delete=models.CASCADE)
     eeprom_contents = models.CharField(max_length=50)
@@ -20,7 +24,7 @@ class InventoryBackPlane(models.Model):
 
     class Meta:
         db_table = 'inventory_backplane'
-        unique_together = (('node', 'serial_num'),)
+        unique_together = (('node', 'eeprom_contents'),)
 
 
 class InventoryCard(models.Model):
@@ -31,6 +35,7 @@ class InventoryCard(models.Model):
 
     class Meta:
         db_table = 'inventory_card'
+        unique_together = (('card', 'node'),)
 
 
 class NetworkInterface(models.Model):
@@ -61,6 +66,7 @@ class Alarms(models.Model):
 
     class Meta:
         db_table = 'alarms'
+        unique_together = (('node', 'resource_id'),)
 
 
 class CardStats(models.Model):
@@ -78,6 +84,7 @@ class CardStats(models.Model):
 
     class Meta:
         db_table = 'card_stats'
+        unique_together = (('node', 'slot'),)
 
 
 class GponOnuStats(models.Model):
@@ -100,6 +107,7 @@ class GponOnuStats(models.Model):
 
     class Meta:
         db_table = 'gpon_onu_stats'
+        unique_together = (('node', 'slot', 'sub_port'),)
 
 
 class OltLineStatus(models.Model):
@@ -128,6 +136,7 @@ class OltLineStatus(models.Model):
 
     class Meta:
         db_table = 'olt_line_status'
+        unique_together = (('node', 'shelf', 'slot', 'port', 'channel'),)
 
 
 class OnuLineStatus(models.Model):
@@ -172,6 +181,7 @@ class OnuLineStatus(models.Model):
 
     class Meta:
         db_table = 'onu_line_status'
+        unique_together = (('node', 'shelf', 'slot', 'port', 'channel'),)
 
 
 class SlotStatus(models.Model):
@@ -192,3 +202,4 @@ class SlotStatus(models.Model):
 
     class Meta:
         db_table = 'slot_status'
+        unique_together = (('node', 'shelf', 'slot'),)
