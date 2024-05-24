@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'accounts',
     'report',
     'report_data',
+    'report_pdf_generator',
 
 ]
 
@@ -137,14 +138,14 @@ DATABASES = {
         'HOST': env('DB_HOST'),
         'PORT': env('DB_PORT', default='5432'),
     },
-    'dzsi': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dzsi',
-        'USER': 'user',
-        'PASSWORD': 'password',
-        'HOST': 'db',
-        'PORT': 5432,
-    }
+    # 'dzsi': {
+    #     'ENGINE': 'django.db.backends.postgresql',
+    #     'NAME': 'dzsi',
+    #     'USER': 'user',
+    #     'PASSWORD': 'password',
+    #     'HOST': 'db',
+    #     'PORT': 5432,
+    # }
 }
 
 LOGOUT_REDIRECT_URL = '/accounts/login/'
@@ -152,4 +153,4 @@ print('base dir', BASE_DIR)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-DATABASE_ROUTERS = ['report_data.routers.ReportDataDatabaseRouter']
+#DATABASE_ROUTERS = ['report_data.routers.ReportDataDatabaseRouter']

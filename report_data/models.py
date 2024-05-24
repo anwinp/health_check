@@ -5,7 +5,7 @@ class Node(models.Model):
     name = models.CharField(max_length=255, unique=True)
     
     class Meta:
-        db_table = 'node'
+        db_table = 'data_node'
         
 
 class InventoryBackPlane(models.Model):
@@ -23,7 +23,7 @@ class InventoryBackPlane(models.Model):
     feature_bits_modification_date = models.CharField(max_length=25)
 
     class Meta:
-        db_table = 'inventory_backplane'
+        db_table = 'data_inventory_backplane'
         unique_together = (('node', 'eeprom_contents'),)
 
 
@@ -34,7 +34,7 @@ class InventoryCard(models.Model):
     node = models.ForeignKey(Node, on_delete=models.CASCADE)
 
     class Meta:
-        db_table = 'inventory_card'
+        db_table = 'data_inventory_card'
         unique_together = (('card', 'node'),)
 
 
@@ -54,7 +54,7 @@ class NetworkInterface(models.Model):
     fiber_link_length_100m = models.IntegerField()
 
     class Meta:
-        db_table = 'network_interface'
+        db_table = 'data_network_interface'
         unique_together = (('node', 'interface'),)
 
 
@@ -65,7 +65,7 @@ class Alarms(models.Model):
     alarm_severity = models.CharField(max_length=20)
 
     class Meta:
-        db_table = 'alarms'
+        db_table = 'data_alarms'
         unique_together = (('node', 'resource_id'),)
 
 
@@ -83,7 +83,7 @@ class CardStats(models.Model):
     software_version = models.CharField(max_length=50)
 
     class Meta:
-        db_table = 'card_stats'
+        db_table = 'data_card_stats'
         unique_together = (('node', 'slot'),)
 
 
@@ -106,7 +106,7 @@ class GponOnuStats(models.Model):
     drift_of_window_indications = models.IntegerField()
 
     class Meta:
-        db_table = 'gpon_onu_stats'
+        db_table = 'data_gpon_onu_stats'
         unique_together = (('node', 'slot', 'sub_port'),)
 
 
@@ -135,7 +135,7 @@ class OltLineStatus(models.Model):
     line_16 = models.CharField(max_length=10)
 
     class Meta:
-        db_table = 'olt_line_status'
+        db_table = 'data_olt_line_status'
         unique_together = (('node', 'shelf', 'slot', 'port', 'channel'),)
 
 
@@ -180,7 +180,7 @@ class OnuLineStatus(models.Model):
     line_32 = models.CharField(max_length=10)
 
     class Meta:
-        db_table = 'onu_line_status'
+        db_table = 'data_onu_line_status'
         unique_together = (('node', 'shelf', 'slot', 'port', 'channel'),)
 
 
@@ -201,5 +201,5 @@ class SlotStatus(models.Model):
     slots_status = models.CharField(max_length=20)
 
     class Meta:
-        db_table = 'slot_status'
+        db_table = 'data_slot_status'
         unique_together = (('node', 'shelf', 'slot'),)

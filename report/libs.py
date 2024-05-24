@@ -19,6 +19,8 @@ from django.conf import settings
 import os
 from .models import Report
 from pathlib import Path
+from report_data.ingestion_registry import ingestion_registry
+from report_data.models import Node
 
 COMMAND_PATTERNS_FILE = settings.BASE_DIR / 'report' / 'command_patterns.yaml'
 
@@ -34,8 +36,10 @@ def get_reports_folder_path():
     os.makedirs(reports_folder, exist_ok=True)
     return reports_folder
 
-def process_data(log_filepath: str, create_report: bool = False, create_excel: bool = True):
+def process_data(log_filepath: str, create_report: bool = False, create_excel: bool = False):
     # Initialize the parser factory and register command parsers
+    print("Processing data...")
+    print(f"Log file path: {log_filepath}")
     parser_factory = ParserFactory()
     for name, ParserClass in CommandParserBase.registry.items():
         parser_factory.register_parser(name, ParserClass)
@@ -55,6 +59,9 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
     commands_data = log_parser.get_commands()
 
     file_name = Path(log_filepath).stem
+    print(f"Processing data for {file_name}...")    
+    ip_address = file_name.split('_')[1]
+    node_instance, _ = Node.objects.get_or_create(ip_address=ip_address, name=ip_address)
     # Step 2: Dynamically parse command outputs using registered parsers
     output = {}
     for command, blocks in commands_data.items():
@@ -62,6 +69,11 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
             parser = parser_factory.get_parser(command)
             parsed_data = parser.parse(blocks)
             output[command] = parsed_data
+            ingestion_function = ingestion_registry.get_ingestion_method(command)
+            if not ingestion_function:
+                print(f"No ingestion method registered for command: {command}")
+                continue
+            ingestion_function(node_instance, parsed_data)
         except ValueError as e:
             # import traceback
             # traceback.print_exc()

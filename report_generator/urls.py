@@ -26,6 +26,8 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('report/', include('report.urls')),
     path('', home_view, name='home'),  # Map the root URL to home_view
+    path('report-pdf-generator/', include('report_pdf_generator.urls')),
+
 
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
