@@ -1,6 +1,7 @@
 
 from report_data.models import InventoryBackPlane, Alarms, SlotStatus, InventoryCard, NetworkInterface, Alarms, CardStats, OltLineStatus, OnuLineStatus, GponOnuStats
 from django.db.utils import IntegrityError
+from datetime import datetime
 
 
 def ingest_inventory_backplane_data(node, data_list):
@@ -468,6 +469,7 @@ def ingest_network_interface_data(node, data_list):
             print(f"Error ingesting network interface {data['Interface']}: {e}")
 
 
+
 def ingest_inventory_card_data(node, data_list):
     """
     Ingests a list of inventory card data dictionaries into the InventoryCard table.
@@ -491,13 +493,19 @@ def ingest_inventory_card_data(node, data_list):
     """
     for data in data_list:
         try:
+            # Parse the timestamp to the correct format
+            timestamp_str = data.get('Timestamp', '1900-01-01 00:00:00')
+            timestamp = datetime.strptime(timestamp_str, '%b %d %Y, %H:%M:%S')
+
             InventoryCard.objects.create(
                 node=node,
                 card=data.get('Card', ''),
                 rom_version=data.get('ROM Version', ''),
-                timestamp=data.get('Timestamp', '1900-01-01 00:00:00')
+                timestamp=timestamp
             )
             print(f"Inventory card {data['Card']} ingested successfully.")
+        except ValueError as ve:
+            print(f"Error parsing date for inventory card {data['Card']}: {ve}")
         except IntegrityError:
             print(f"Inventory card {data['Card']} already exists and was not ingested.")
         except Exception as e:
