@@ -13,6 +13,7 @@ from .parsers import CommandParserBase
 from .log_reader import LogParser
 from .report_generator import ReportGenerator
 from .excel_generator import ExcelGenerator
+from .pdf_generator import PDFReportGenerator
 import datetime
 import yaml
 from django.conf import settings
@@ -36,7 +37,7 @@ def get_reports_folder_path():
     os.makedirs(reports_folder, exist_ok=True)
     return reports_folder
 
-def process_data(log_filepath: str, create_report: bool = False, create_excel: bool = False):
+def process_data(log_filepath: str, create_report: bool = True, create_excel: bool = False):
     # Initialize the parser factory and register command parsers
     print("Processing data...")
     print(f"Log file path: {log_filepath}")
@@ -61,19 +62,19 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
     file_name = Path(log_filepath).stem
     print(f"Processing data for {file_name}...")    
     ip_address = file_name.split('_')[1]
-    node_instance, _ = Node.objects.get_or_create(ip_address=ip_address, name=ip_address)
+    #node_instance, _ = Node.objects.get_or_create(ip_address=ip_address, name=ip_address)
     # Step 2: Dynamically parse command outputs using registered parsers
     output = {}
     for command, blocks in commands_data.items():
         try:
             parser = parser_factory.get_parser(command)
-            parsed_data = parser.parse(blocks)
-            output[command] = parsed_data
+     #       parsed_data = parser.parse(blocks)
+     #       output[command] = parsed_data
             ingestion_function = ingestion_registry.get_ingestion_method(command)
             if not ingestion_function:
                 print(f"No ingestion method registered for command: {command}")
                 continue
-            ingestion_function(node_instance, parsed_data)
+       #     ingestion_function(node_instance, parsed_data)
         except ValueError as e:
             # import traceback
             # traceback.print_exc()
@@ -84,7 +85,7 @@ def process_data(log_filepath: str, create_report: bool = False, create_excel: b
     excel_report_filename = f"report_{file_name}_{timestamp}.xlsx"
 
     if create_report:
-        generate_report(output, report_filename)
+        generate_pdf_report(report_filename)
 
     if create_excel:
         generate_excel_report(output, excel_report_filename)
@@ -119,6 +120,13 @@ def generate_excel_report(output: dict, filename: str):
 
     print(f"Excel generated at {excel_generator.get_filepath()}")
 
+def generate_pdf_report(filename: str):
+    reports_folder = get_reports_folder_path()
+    pdf_filepath = os.path.join(reports_folder, filename)
+    report_generator = PDFReportGenerator(pdf_filepath)
+    report_generator.generate_report()
+   # save_report_record(pdf_filepath, 'xlsx')
+    print(f"PDF Report generated at {report_generator.get_filepath()}")
     
 def save_report_record(report_filepath, report_type):
     title = os.path.basename(report_filepath)
