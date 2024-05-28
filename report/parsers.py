@@ -232,14 +232,16 @@ class SlotsParser(CommandParserBase):
         slots_output = blocks.pop('slots', None)
         cards_info = self.parse_cards_info(slots_output['output'])
         for command_key, command_data in blocks.items():
-            result_dict = self.key_value_parser.parse(command_data['output'], keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State', 'ROM Version', 'Mode', 'Serial #'])
+            input_data = command_data['output']
+            chassis_type = input_data.split('\n')[0].strip()
+            result_dict = self.key_value_parser.parse(input_data, keywords=['Shelf', 'Slot', 'Type', 'Card Version', 'Software Version', 'Uptime', 'State', 'ROM Version', 'Mode', 'Serial #'])
             card_type = result_dict.get('Type')
-
             card_mapping = cards_info.get(card_type)
             filtered_dict = {
                 'Component': card_mapping['component'],
                 'Shelf': result_dict.get('Shelf'),
                 'Slot': result_dict.get('Slot'),
+                'Chassis Type': chassis_type,
                 'Type': card_type.split(',')[0].strip(),
                 'Card Version': result_dict.get('Card Version'),
                 'Software Version': result_dict.get('Software Version'),

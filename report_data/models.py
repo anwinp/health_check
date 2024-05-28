@@ -189,6 +189,7 @@ class SlotStatus(models.Model):
     component = models.CharField(max_length=50)
     shelf = models.IntegerField()
     slot = models.CharField(max_length=5)
+    chassis_type = models.CharField(max_length=50, default='')
     type = models.CharField(max_length=50)
     card_version = models.CharField(max_length=20)
     software_version = models.CharField(max_length=20)
