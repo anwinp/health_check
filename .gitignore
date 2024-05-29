@@ -2,6 +2,7 @@
 .vscode/
 venv/**
 media/data/files/*
+media/data/reports/*
 report_*.pdf
 report_*.xlsx
 

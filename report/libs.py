@@ -14,6 +14,7 @@ from .log_reader import LogParser
 from .report_generator import ReportGenerator
 from .excel_generator import ExcelGenerator
 from .pdf_generator import PDFReportGenerator
+from .word_generator import WordReportGenerator
 import datetime
 import yaml
 from django.conf import settings
@@ -62,30 +63,30 @@ def process_data(log_filepath: str, create_report: bool = True, create_excel: bo
     file_name = Path(log_filepath).stem
     print(f"Processing data for {file_name}...")    
     ip_address = file_name.split('_')[1]
-    #node_instance, _ = Node.objects.get_or_create(ip_address=ip_address, name=ip_address)
+    node_instance, _ = Node.objects.get_or_create(ip_address=ip_address, name=ip_address)
     # Step 2: Dynamically parse command outputs using registered parsers
     output = {}
     for command, blocks in commands_data.items():
         try:
             parser = parser_factory.get_parser(command)
-     #       parsed_data = parser.parse(blocks)
-     #       output[command] = parsed_data
+            parsed_data = parser.parse(blocks)
+            output[command] = parsed_data
             ingestion_function = ingestion_registry.get_ingestion_method(command)
             if not ingestion_function:
                 print(f"No ingestion method registered for command: {command}")
                 continue
-       #     ingestion_function(node_instance, parsed_data)
+            ingestion_function(node_instance, parsed_data)
         except ValueError as e:
             # import traceback
             # traceback.print_exc()
             print(e)
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    report_filename = f"report_{file_name}_{timestamp}.pdf"
+    report_filename = f"report_{file_name}_{timestamp}.docx"
     excel_report_filename = f"report_{file_name}_{timestamp}.xlsx"
 
     if create_report:
-        generate_pdf_report(report_filename)
+        generate_word_report(report_filename)
 
     if create_excel:
         generate_excel_report(output, excel_report_filename)
@@ -127,7 +128,18 @@ def generate_pdf_report(filename: str):
     report_generator.generate_report()
    # save_report_record(pdf_filepath, 'xlsx')
     print(f"PDF Report generated at {report_generator.get_filepath()}")
-    
+  
+def generate_word_report(filename: str):
+    reports_folder = get_reports_folder_path()
+    word_filepath = os.path.join(reports_folder, filename)
+    report_generator = WordReportGenerator(word_filepath)
+    from report_data.libs import fetch_olt_info_report_data
+    data_by_node = fetch_olt_info_report_data()
+    print('data_by_node', data_by_node)
+    report_generator.generate_report(data_by_node)
+    save_report_record(word_filepath, 'word')
+    print(f"Word Report generated at {report_generator.get_filepath()}")
+      
 def save_report_record(report_filepath, report_type):
     title = os.path.basename(report_filepath)
     
